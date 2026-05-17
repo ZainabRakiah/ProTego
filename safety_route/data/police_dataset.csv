@@ -1,0 +1,61 @@
+type,lat,lon,tags,lighting_level,police_near,cctv_count,crime_reports,safety_score,street_name,area_name
+police,13.0181973,77.5581675,"{'amenity': 'police', 'check_date': '2025-08-21', 'name': 'DCP Bangalore North Traffic Police', 'wheelchair': 'no'}",5,1,0,2,0.68,8th Main Road,Bengaluru
+police,12.9285653,77.5813657,"{'amenity': 'police', 'name': 'Jayanagar 4th Block Police Station', 'name:kn': 'ಜಯನಗರ ನಾಲ್ಕನೇ ಹಂತ ಪೋಲೀಸ್ ಠಾಣೆ'}",5,1,0,4,0.56,Vinayaka Devalaya Road,Jayanagar 4th Block Police Station
+police,12.9762399,77.5983458,"{'amenity': 'police', 'name': 'Cubbon Park Police Station', 'name:kn': 'ಕಬ್ಬನ್ ಪಾರ್ಕ್ ಆರಕ್ಷಕ ಠಾಣೆ'}",5,1,0,4,0.56,Kasturba Road,Bengaluru
+police,12.9966811,77.5696708,"{'amenity': 'police', 'name': 'Maleshwaram Police station', 'name:kn': 'ಮಲೇಶ್ವರಂ ಆರಕ್ಷಕ ಠಾಣೆ', 'wheelchair': 'no'}",5,1,0,1,0.74,Malleshwaram Underpass,Bengaluru
+police,13.0486481,77.5495673,"{'amenity': 'police', 'name': 'Jalahalli Police Station', 'name:kn': 'ಜಾಲಹಳ್ಳಿ ಆರಕ್ಷಕ ಠಾಣೆ', 'wheelchair': 'no'}",5,1,0,3,0.62,HMT Main Road,Bengaluru
+police,12.9854915,77.5425698,"{'amenity': 'police', 'name': 'Basaveshwaranagar Police Station', 'name:kn': 'ಬಸವೇಶ್ವರ ನಗರ ಆರಕ್ಷಕ ಠಾಣೆ', 'wheelchair': 'yes'}",5,1,0,1,0.74,Basaveshwaranagar Main Road,Bengaluru
+police,12.9695368,77.5877623,"{'amenity': 'police', 'name': 'Police Headquarters'}",5,1,0,2,0.68,Nrupatunga Road,Bengaluru
+police,12.928367,77.5905691,"{'addr:street': 'Tilak Nagar Main Road', 'amenity': 'police', 'name': 'Tilaknagar Police Station', 'name:kn': 'ತಿಲಕ್ ನಗರ ಪೋಲಿಸ್ ಟಾಣೆ'}",5,1,0,4,0.56,Tilak Nagar Main Road,Tilaknagar Police Station
+police,12.983019,77.6384106,"{'amenity': 'police', 'name': 'Indira Nagar Police Station', 'name:kn': 'ಇಂದಿರಾನಗರ ಆರಕ್ಷಕ ಠಾಣೆ'}",5,1,0,3,0.62,Swamy Vivekananda Road,Bengaluru
+police,12.9086369,77.6105652,"{'amenity': 'police', 'name': 'Mico Layout Police Station', 'name:kn': 'ಮಿಕೋ ಬಡಾವಣೆ ಆರಕ್ಷಕ', 'wheelchair': 'yes'}",5,1,0,4,0.56,16th Main Road,Mico Layout Police Station
+police,12.935917,77.5439681,"{'amenity': 'police', 'name': 'Girinagar Police Station', 'name:kn': 'ಗಿರಿನಗರ ಆರಕ್ಷಕ ಠಾಣೆ'}",5,1,0,1,0.74,1st Cross Road,Girinagar Police Station
+police,13.0335598,77.5758979,"{'amenity': 'police', 'name': 'Sanjayanagar Police station', 'name:kn': 'ಸಂಜಯನಗರ ಆರಕ್ಷಕ ಠಾಣೆ'}",5,1,0,0,0.8,Sanjaynagar Main Road,Bengaluru
+police,12.9881279,77.5744324,"{'amenity': 'police', 'check_date': '2024-03-02', 'name': 'Seshadripuram Police Station', 'name:kn': 'ಶೇಶಾದ್ರಿಪುರಮ್ ಆರಕ್ಷಕ ಠಾಣೆ', 'wheelchair': 'no'}",5,1,0,1,0.74,Subedar Chatram Road,Bengaluru
+police,12.9945063,77.554298,"{'amenity': 'police', 'check_date': '2025-03-18', 'name': 'Rajaji Nagar Police Station', 'name:kn': 'ರಾಜಾಜಿನಗರ ಆರಕ್ಷಕ ಠಾಣೆ', 'name:ta': 'ராஜாஜிநகர காவல் நிலையம்'}",5,1,0,3,0.62,12th Main Road,Bengaluru
+police,13.0386192,77.5896244,"{'amenity': 'police', 'building': 'yes', 'name': 'Hebbal Police Station', 'name:kn': 'ಹೆಬ್ಬಾಳ ಆರಕ್ಷಕ ಠಾಣೆ', 'wheelchair': 'no'}",5,1,0,4,0.56,3rd Main Road,Bengaluru
+police,13.0015732,77.578628,"{'amenity': 'police', 'name': 'Vyali Kaval Police Station', 'name:kn': 'ಆರಕ್ಷಕ ಠಾಣೆ'}",5,1,0,0,0.8,Vyalikaval Main Road,Bengaluru
+police,12.9363435,77.5615008,"{'amenity': 'police', 'name': 'Police Station', 'name:kn': 'ಆರಕ್ಷಕ ಠಾಣೆ', 'operator': 'Karnataka Police Department'}",5,1,0,1,0.74,11th Cross Road,Bengaluru
+police,12.9825702,77.6070982,"{'addr:city': 'Bangalore', 'addr:housename': 'Shivajinagar', 'addr:street': 'Commercial Street', 'amenity': 'police', 'name': 'Commercial Street Police Station', 'name:kn': 'ಕಮರ್ಷಿಯಲ್ ರಸ್ತೆ ಆರಕ್ಷಕ ಠಾಣೆ', 'wheelchair': 'no'}",5,1,0,4,0.56,Commercial Street,Bangalore
+police,12.9733449,77.5414869,"{'amenity': 'police', 'name': 'Vijaynagar Traffic Police Station', 'name:kn': 'ವಿಜಯನಗರ ಸಂಚಾರ ಪೊಲೀಸ್ ಠಾಣೆ'}",5,1,0,4,0.56,Sha Shi Marulayya Road,Bengaluru
+police,12.9707264,77.5377251,"{'amenity': 'police', 'designation': 'Vijayangar Police Station', 'name': 'Vijayanagar Police Station', 'name:kn': 'ವಿಜಯನಗರ ಆರಕ್ಷಕ ಠಾಣೆ'}",5,1,0,2,0.68,Sha Shi Marulayya Road,Bengaluru
+police,12.9604765,77.5643202,"{'amenity': 'police', 'name': 'Chamarajapet Police Station', 'name:kn': 'ಆರಕ್ಷಕ ಠಾಣೆ', 'wheelchair': 'limited'}",5,1,0,4,0.56,Aluri Venkata Rao Road,Bengaluru
+police,12.9538729,77.570101,"{'addr:street': 'Shankar Matt Road', 'amenity': 'police', 'name': 'Shankarapuram Police Station', 'name:kn': 'ಆರಕ್ಷಕ ಠಾಣೆ', 'wheelchair': 'no'}",5,1,0,3,0.62,Shankar Matt Road,Bengaluru
+police,13.0360107,77.5211853,"{'amenity': 'police', 'name': 'Peenya Police Station', 'name:kn': 'ಪೀಣ್ಯ ಆರಕ್ಷಕ ಠಾಣೆ'}",5,1,0,0,0.8,Police Station Road,Bengaluru
+police,12.9680925,77.5700945,"{'amenity': 'police', 'name': 'Cottenpet Police Station', 'wheelchair': 'no'}",5,1,0,2,0.68,Belli Mutt Road,Bengaluru
+police,12.9292268,77.5678506,"{'amenity': 'police', 'name': ""Women's Police Station"", 'name:kn': 'ಮಹಿಳಾ ಪೊಲೀಸ್ ಠಾಣೆ'}",5,1,0,0,0.8,Karantha Road,Women's Police Station
+police,12.929436,77.5678479,"{'amenity': 'police', 'name': 'Thyagaraja Nagar Police Station', 'name:kn': 'ತ್ಯಾಗರಾಜನಗರ ಆರಕ್ಷಕ ಠಾಣೆ'}",5,1,0,0,0.8,Karantha Road,Thyagaraja Nagar Police Station
+police,12.9235553,77.5533335,"{'amenity': 'police', 'name': 'BSK 3rd stage Police Station', 'wheelchair': 'no'}",5,1,0,0,0.8,Outer Ring Road,BSK 3rd stage Police Station
+police,12.9744861,77.5512501,"{'amenity': 'police', 'name': 'Magadi Road Police Station', 'old_name': 'Rajajinagar Traffic Police Station', 'wheelchair': 'no'}",5,1,0,1,0.74,Magadi Road,Bengaluru
+police,12.9649402,77.5761878,"{'addr:street': 'Sultan Road', 'alt_name': 'City Market Police Station', 'amenity': 'police', 'name': 'Krishna Rajendra Market Police Station'}",5,1,0,0,0.8,Sultan Road,Bengaluru
+police,12.9707012,77.5736393,"{'amenity': 'police', 'name': 'Chikkapete Police Station', 'name:kn': 'ಚಿಕ್ಕಪೇಟೆ ಆರಕ್ಷಕ ಠಾಣೆ'}",5,1,0,4,0.56,,Bengaluru
+police,13.0124684,77.5368288,"{'amenity': 'police', 'name': 'Nandini Layout Police Station', 'name:kn': 'ನಂದಿನಿ ಲೇಔಟ್ ಪೋಲಿಸ್ ಠಾಣೆ'}",5,1,0,2,0.68,Nandhini Layout Main Road,Bengaluru
+police,12.9229116,77.5650055,"{'amenity': 'police', 'name': 'Banashankari Police Station', 'name:kn': 'ಬನಶಂಕರಿ ಆರಕ್ಷಕ ಠಾಣೆ'}",5,1,0,2,0.68,27th Cross Road,Banashankari Police Station
+police,13.0237703,77.6457711,"{'addr:city': 'Babusabpalya, Hennur', 'addr:street': 'Outer Ring Road', 'amenity': 'police', 'check_date': '2024-07-05', 'name': 'Hennur Police Station', 'name:kn': 'ಹೆಣ್ಣೂರು ಆರಕ್ಷಕ ಠಾಣೆ'}",5,1,0,3,0.62,Outer Ring Road,"Babusabpalya, Hennur"
+police,12.9632542,77.5920638,"{'addr:city': 'Bangalore', 'addr:housenumber': '16', 'addr:postcode': '560027', 'addr:street': 'Mission Road (Kalinga Rao Road)', 'amenity': 'police', 'name': 'Sampangi Rama Nagar Police Station', 'name:bn': 'সম্পাঙ্গী রাম নগর থানা'}",5,1,0,1,0.74,Mission Road (Kalinga Rao Road),Bangalore
+police,12.978243,77.6404269,"{'amenity': 'police', 'check_date': '2025-08-15', 'name': 'Indiranagar Traffic Police Station'}",5,1,0,4,0.56,Chinmaya Mission Hospital Road,Bengaluru
+police,12.9691307,77.6168652,"{'amenity': 'police', 'name': 'Karnataka State Reserve Police'}",5,1,0,0,0.8,Richmond Road,Bengaluru
+police,12.9773726,77.5884362,"{'amenity': 'police', 'level': '-1', 'name': 'Vidhana Soudha Police Station', 'name:kn': 'ವಿಧಾನ ಸೌಧ ಆರಕ್ಷಕ ಠಾಣೆ'}",5,1,0,0,0.8,Devaraj Urs Road,Bengaluru
+police,12.9643591,77.5551587,"{'addr:street': 'Hosahalli Main Road', 'amenity': 'police', 'name': 'J J R Nagar Police station'}",5,1,0,0,0.8,Hosahalli Main Road,Bengaluru
+police,12.9680176,77.5787039,"{'amenity': 'police', 'name': 'Avenue Road Police Chowky'}",5,1,0,0,0.8,,Bengaluru
+police,12.9301326,77.5606044,"{'addr:city': 'Bengaluru', 'addr:postcode': '560085', 'addr:street': '8th Cross Rd, Vidyapeeta Layout, Banashankari 3rd Stage', 'amenity': 'police', 'name': 'Chennamanakere Achukattu Police Station', 'name:kn': 'ಚೆನ್ನಮ್ಮಕೆರೆ ಅಚ್ಚುಕಟ್ಟು', 'phone': '080 2294 3483', 'website': 'ksp.gov.in'}",5,1,0,3,0.62,"8th Cross Rd, Vidyapeeta Layout, Banashankari 3rd Stage",Bengaluru
+police,12.9744833,77.5748342,"{'addr:city': 'Bengalore', 'addr:postcode': '560009', 'addr:street': 'Kempe Gowda Circle, Danvanthri Rd, Majestic,', 'amenity': 'police', 'name': 'Upparpet Traffic Police Station', 'name:kn': 'ಸಂಚಾರ ಪೊಲೀಸ್ ಠಾಣೆ', 'phone': '080 2294 2665', 'website': 'NA'}",5,1,0,1,0.74,"Kempe Gowda Circle, Danvanthri Rd, Majestic,",Bengalore
+police,12.9724461,77.5386676,"{'addr:city': 'Bangalore', 'addr:postcode': '560040', 'addr:street': 'BMTC Building, Vijayanagar Service Road, 8th Main Road, Hoshalli Extension, RPC Layout, Vijayanagar,', 'amenity': 'police', 'name': 'Traffic Police Station', 'name:kn': 'ವಿಜಯನಗರ ಸಂಚಾರ ಪೊಲೀಸ್ ಠಾಣೆ', 'phone': '080 2294 2809', 'website': 'NA'}",5,1,0,3,0.62,"BMTC Building, Vijayanagar Service Road, 8th Main Road, Hoshalli Extension, RPC Layout, Vijayanagar,",Bangalore
+police,12.9081741,77.6368327,{'amenity': 'police'},5,1,0,1,0.74,13th Main Road,
+police,12.9848902,77.5828907,"{'amenity': 'police', 'name': 'High Grounds Traffic Police Station'}",5,1,0,0,0.8,Hare Krishna Road,Bengaluru
+police,13.0057165,77.5934124,"{'amenity': 'police', 'name': 'JC Nagara Police Station', 'name:kn': 'ಜೆಸಿ ನಗರ ಆರಕ್ಷಕ ಠಾಣೆ'}",5,1,0,2,0.68,Nandi Durga Road,Bengaluru
+police,12.9965632,77.6425776,"{'amenity': 'police', 'name': 'Police Station', 'name:kn': 'ಬೈಯಪ್ಪನಹಳ್ಳಿ ಆರಕ್ಷಕ ಠಾಣೆ'}",5,1,0,2,0.68,Baiyappanahalli Road,Police Station
+police,12.9406149,77.5949214,"{'amenity': 'police', 'name': 'NIMHANS Police Outpost'}",5,1,0,4,0.56,3rd Cross Road,Bengaluru
+police,12.9589313,77.5283822,"{'amenity': 'police', 'check_date': '2024-05-19', 'name': 'Chandra Layout Police Station'}",5,1,0,1,0.74,4th Main Road,Bengaluru
+police,12.9760045,77.5981119,"{'amenity': 'police', 'name': 'Cubbon Park Traffic Police Station'}",5,1,0,3,0.62,Kasturba Road,Bengaluru
+police,13.0424185,77.5893069,"{'amenity': 'police', 'check_date': '2025-06-12', 'name': 'Hebbal Traffic Police Station'}",5,1,0,0,0.8,Hebbal Flyover Ramp,Bengaluru
+police,12.972,77.607,"{'amenity':'police','name':'Ashoknagar Police Station'}",5,1,0,2,0.72,Brigade Road,Ashoknagar
+police,12.9669,77.6032,"{'amenity':'police','name':'Halasoor Gate Police Station'}",5,2,1,1,0.82,Infantry Road,Halasoor Gate
+police,13.0177,77.5555,"{'amenity':'police','name':'Yeshwanthapura Police Station'}",5,1,0,1,0.79,Tumkur Road,Yeshwanthpur
+police,12.9733,77.6405,"{'amenity':'police','name':'Indiranagar Police Station'}",5,2,2,1,0.85,100 ft Road,Indiranagar
+police,12.972,77.607,"{'amenity':'police','name':'Ashoknagar Police Station'}",5,2,1,2,0.82,Brigade Road,Ashoknagar
+police,12.9669,77.6032,"{'amenity':'police','name':'Halasoor Gate Police Station'}",5,2,1,1,0.84,Infantry Road,Halasoor Gate
+police,13.0177,77.5555,"{'amenity':'police','name':'Yeshwanthapura Police Station'}",5,2,1,1,0.8,Tumkur Road,Yeshwanthpur
+police,12.9733,77.6405,"{'amenity':'police','name':'Indiranagar Police Station'}",5,2,2,1,0.86,100 ft Road,Indiranagar
+police,13.0027,77.5703,"{'amenity':'police','name':'Malleshwaram Police Station'}",5,2,1,1,0.82,Sampige Road,Malleshwaram
+police,13.0005,77.5497,"{'amenity':'police','name':'Rajajinagar Police Station'}",5,2,1,1,0.81,Dr Rajkumar Road,Rajajinagar

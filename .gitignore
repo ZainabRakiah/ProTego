@@ -1,0 +1,37 @@
+# ProTego venv
+ProTego_venv/
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Database
+*.db
+database.db
+
+# IDE / OS
+.DS_Store
+.vscode/
+*.swp
+*.swo
+*~
+
+
+venv/
+ProTego_venv/
+__pycache__/
+*.pyc
+node_modules/
+.env
+.DS_Store

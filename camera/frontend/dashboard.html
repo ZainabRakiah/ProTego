@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SafeWalk — Dashboard</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<header class="navbar">
+<div class="brand">SafeWalk</div>
+<nav>
+<a href="dashboard.html">Home</a>
+<a href="map.html">Map</a>
+<a href="report.html">Report</a>
+<a href="CamIndex.html">SafeCamera</a>
+<a href="profile.html">Profile</a>
+
+
+</nav>
+</header>
+
+
+<main class="main">
+<section class="hero card">
+<h2>Welcome, <span id="userDisplay">You</span></h2>
+<p class="muted">Choose a safe route, share location or report incidents.</p>
+<div class="hero-actions">
+<a class="btn" href="map.html">Open Map</a>
+<a class="btn ghost" href="report.html">Report Issue</a>
+
+
+</div>
+</section>
+
+
+<section class="cards-row">
+<div class="card small">
+<h4>Live Tracking</h4>
+<p id="trackingStatus">Active</p>
+</div>
+<div class="card small">
+<h4>Nearest Police</h4>
+<p id="nearestPolice">1.2 km</p>
+</div>
+<div class="card small">
+<h4>Latest Alert</h4>
+<p id="latestAlert">All clear</p>
+</div>
+</section>
+</main>
+
+
+<script src="js/script.js"></script>
+</body>
+</html>

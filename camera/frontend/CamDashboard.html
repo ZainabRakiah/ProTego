@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>SafeCam Dashboard</title>
+
+<style>
+
+body{
+    font-family: Arial, sans-serif;
+    background:#f2f2f2;
+    margin:0;
+    text-align:center;
+}
+
+header{
+    background:#1f2a44;
+    color:white;
+    padding:15px;
+}
+
+header a{
+    color:white;
+    margin-left:15px;
+    text-decoration:none;
+}
+
+/* PASSWORD LOCK SCREEN */
+
+#passwordLock{
+    margin-top:80px;
+}
+
+#passwordLock input{
+    padding:10px;
+    font-size:16px;
+}
+
+/* GALLERY */
+
+#gallery{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+    gap:20px;
+    padding:30px;
+}
+
+/* PHOTO CARD */
+
+.photo-card{
+    background:white;
+    border-radius:12px;
+    padding:10px;
+    box-shadow:0 3px 10px rgba(0,0,0,0.15);
+}
+
+.photo-card img{
+    width:100%;
+    border-radius:8px;
+}
+
+.time{
+    font-size:13px;
+    color:#555;
+}
+
+.delete-btn{
+    margin-top:8px;
+    padding:6px 12px;
+    background:red;
+    border:none;
+    color:white;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+.delete-btn:hover{
+    background:#cc0000;
+}
+
+button{
+    padding:10px 15px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<header>
+
+<h2>SafeCam Evidence</h2>
+
+<nav>
+<a href="CamIndex.html">Home</a>
+</nav>
+
+</header>
+
+
+<!-- PASSWORD LOCK SCREEN -->
+
+<div id="passwordLock">
+
+<h2>🔐Enter Vault Password</h2>
+
+<input type="password" id="vaultPasswordInput" placeholder="Enter password">
+
+<br><br>
+
+<button onclick="unlockDashboard()">Unlock</button>
+
+<p id="passError" style="color:red"></p>
+
+</div>
+
+
+<!-- DASHBOARD CONTENT -->
+
+<div id="dashboardContent" style="display:none">
+
+<h2>Captured Emergency Photos</h2>
+
+<p id="photoCount"></p>
+
+<div id="gallery"></div>
+
+</div>
+
+
+
+<script type="module">
+
+import { app, db } from "./js/firebase-config.js";
+
+import { getAuth, onAuthStateChanged }
+from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+
+import { collection, getDocs, query, where, doc, deleteDoc }
+from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+
+const auth = getAuth(app);
+
+const gallery = document.getElementById("gallery");
+
+const photoCount = document.getElementById("photoCount");
+
+let userId = null;
+
+
+/* PASSWORD STORAGE */
+
+let masterPassword = localStorage.getItem("masterPass");
+
+
+/* UNLOCK DASHBOARD */
+
+window.unlockDashboard = function(){
+
+const entered = document.getElementById("vaultPasswordInput").value;
+
+const error = document.getElementById("passError");
+
+
+if(!entered){
+
+error.innerText="Enter password";
+
+return;
+
+}
+
+
+/* FIRST TIME SET PASSWORD */
+
+if(!masterPassword){
+
+localStorage.setItem("masterPass",entered);
+
+masterPassword = entered;
+
+openDashboard();
+
+return;
+
+}
+
+
+/* VERIFY PASSWORD */
+
+if(entered === masterPassword){
+
+openDashboard();
+
+}else{
+
+error.innerText="Incorrect password";
+
+}
+
+}
+
+
+
+/* OPEN DASHBOARD */
+
+function openDashboard(){
+
+document.getElementById("passwordLock").style.display="none";
+
+document.getElementById("dashboardContent").style.display="block";
+
+loadPhotos();
+
+}
+
+
+
+/* CHECK LOGIN */
+
+onAuthStateChanged(auth, async (user)=>{
+
+if(!user){
+
+photoCount.innerText="Please login to view photos";
+
+return;
+
+}
+
+userId = user.uid;
+
+});
+
+
+
+/* LOAD PHOTOS */
+
+async function loadPhotos(){
+
+try{
+
+gallery.innerHTML="";
+
+photoCount.innerText="Loading captured photos...";
+
+const q = query(
+
+collection(db,"captures"),
+
+where("userId","==",userId)
+
+);
+
+const querySnapshot = await getDocs(q);
+
+let images=[];
+
+querySnapshot.forEach((docItem)=>{
+
+const data = docItem.data();
+
+data.id = docItem.id;
+
+images.push(data);
+
+});
+
+images.sort((a,b)=> new Date(b.time)-new Date(a.time));
+
+photoCount.innerText="Total Photos: "+images.length;
+
+
+images.forEach((data)=>{
+
+const container=document.createElement("div");
+
+container.classList.add("photo-card");
+
+const img=document.createElement("img");
+
+img.src=data.image;
+
+const time=document.createElement("p");
+
+time.classList.add("time");
+
+time.innerText="Captured: "+new Date(data.time).toLocaleString();
+
+
+const deleteBtn=document.createElement("button");
+
+deleteBtn.innerText="Delete";
+
+deleteBtn.classList.add("delete-btn");
+
+
+deleteBtn.onclick=async()=>{
+
+if(!confirm("Delete this photo?")) return;
+
+await deleteDoc(doc(db,"captures",data.id));
+
+container.remove();
+
+};
+
+
+container.appendChild(img);
+
+container.appendChild(time);
+
+container.appendChild(deleteBtn);
+
+gallery.appendChild(container);
+
+});
+
+}
+
+catch(error){
+
+console.error("Error loading images:",error);
+
+photoCount.innerText="Error loading photos";
+
+}
+
+}
+
+</script>
+
+</body>
+
+</html>

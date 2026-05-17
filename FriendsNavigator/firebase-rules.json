@@ -1,0 +1,41 @@
+{
+  "rules": {
+    "teams": {
+      ".read": true,
+      ".write": true,
+      "$teamId": {
+        ".read": true,
+        ".write": true,
+        "members": {
+          ".read": true,
+          ".write": true,
+          "$userId": {
+            ".read": true,
+            ".write": true
+          }
+        },
+        "waypoints": {
+          ".read": true,
+          ".write": true,
+          "$wpId": {
+            ".read": true,
+            ".write": true
+          }
+        },
+        "meetup": {
+          ".read": true,
+          ".write": true
+        }
+      }
+    },
+    "recentTeams": {
+      ".read": true,
+      ".write": true,
+      "$teamId": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}
+

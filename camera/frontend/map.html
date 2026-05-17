@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SafeWalk — Map</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+
+<!-- ================= CAMERA MODAL ================= -->
+<div id="cameraModal" style="display:none; position:fixed; inset:0; background:#000; z-index:9999;">
+  <video id="cameraView" autoplay playsinline
+    style="width:100%; height:75%; object-fit:cover;"></video>
+
+  <div style="display:flex; justify-content:space-around; align-items:center; padding:12px;">
+    <button id="toggleTorch">🔦</button>
+    <button id="capturePhoto">📸 Capture</button>
+    <button id="closeCamera">❌ Cancel</button>
+  </div>
+
+  <canvas id="photoCanvas" style="display:none;"></canvas>
+</div>
+<!-- ================================================= -->
+
+<header class="navbar">
+  <div class="brand">SafeWalk</div>
+  <nav>
+    <a href="evidence.html">Home</a>
+    <a href="map.html">Map</a>
+    <a href="report.html">Report</a>
+    <a href="profile.html">Profile</a>
+  </nav>
+</header>
+
+<main class="main">
+  <div class="map-full-wrapper card">
+
+    <!-- SEARCH + ACTION BAR -->
+    <div class="search-panel">
+      <input id="startInput" placeholder="Start (Current location)" />
+      <input id="destInput" class="search-input" placeholder="Destination" />
+
+      <button id="findRouteBtn">Find Safe Route</button>
+      <button id="shareBtn" class="ghost">Share</button>
+
+      <!-- ✅ CAMERA ICON -->
+      <button id="cameraBtn" class="camera-btn">📸</button>
+
+      <!-- ✅ SOS BUTTON -->
+      <button id="sosBtn" class="danger">SOS</button>
+
+      <span class="search-score">
+        Safety: <strong id="score">—</strong>
+      </span>
+    </div>
+
+    <!-- MAP -->
+    <div id="map" class="map-full"></div>
+
+    <!-- ALERTS -->
+    <div id="alerts" class="alerts"></div>
+  </div>
+</main>
+
+<!-- Leaflet -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Map logic -->
+<script src="js/map.js"></script>
+
+<!-- Shared logic -->
+<script src="js/script.js"></script>
+
+</body>
+</html>

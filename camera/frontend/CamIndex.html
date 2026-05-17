@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SafeCam Emergency System</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<div class="main-container">
+
+<div class="card">
+
+<h1>SafeCam</h1>
+<p class="subtitle">Smart Emergency Camera System</p>
+
+<!-- Controls -->
+
+
+
+<div id="controls">
+<div class="top-row">
+
+<button id="loginBtn" class="login-btn">
+Login
+</button>
+<button id="homeBtn" class="login-btn">
+Home
+</button>
+</div>
+
+<div class="sos-wrapper">
+<button id="emergencyBtn" class="sos-btn">
+SOS
+</button>
+</div>
+
+<button id="dashboardBtn" class="gallery-btn">
+Gallery
+</button>
+
+</div>
+
+<!-- Camera -->
+<div class="camera-container">
+<nav>
+<a href="CamIndex.html">Back</a>
+</nav>
+
+<video id="video" autoplay></video>
+
+</div>
+
+</div> <!-- card -->
+</div> <!-- main-container -->
+
+
+<script>
+document.getElementById("dashboardBtn").onclick=function(){
+window.location.href="CamDashboard.html";
+};
+</script>
+
+
+<script>
+document.getElementById("emergencyBtn").onclick=function(){
+
+// hide buttons
+document.getElementById("controls").style.display="none";
+
+// show camera
+document.querySelector(".camera-container").style.display="flex";
+
+};
+</script>
+
+
+
+
+<script>
+document.getElementById("homeBtn").onclick = function () {
+    window.location.href = "index.html";
+};
+</script>
+
+
+
+<script type="module" src="js/CamAuth.js"></script>
+<script type="module" src="js/camera.js"></script>
+
+
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SafeWalk — Trusted Contacts</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="navbar">
+  <div class="brand">SafeWalk</div>
+  <nav>
+    <a href="map.html">Map</a>
+    <a href="contacts.html">Trusted Contacts</a>
+    <a href="profile.html">Profile</a>
+  </nav>
+</header>
+
+<main class="main">
+
+  <!-- ADD LOCATION -->
+  <div class="card">
+    <h3>Add Location</h3>
+    <input id="locLabel" placeholder="Home / Hostel / College" />
+    <button id="addLocationBtn">Add Location</button>
+  </div>
+
+  <!-- LOCATIONS LIST -->
+  <div class="card">
+    <h3>Your Locations</h3>
+    <ul id="locationsList"></ul>
+  </div>
+
+  <!-- CONTACTS -->
+  <div class="card">
+    <h3>Contacts for Selected Location</h3>
+    <input id="contactName" placeholder="Name" />
+    <input id="contactPhone" placeholder="Phone" />
+    <input id="contactEmail" placeholder="Email (optional)" />
+    <button id="addContactBtn">Add Contact</button>
+    <ul id="contactsList"></ul>
+  </div>
+
+</main>
+
+<script src="js/contacts.js"></script>
+</body>
+</html>

@@ -1,0 +1,605 @@
+/* ================================
+   FONT
+================================ */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+/* ================================
+   RESET & GLOBAL
+================================ */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Poppins", sans-serif;
+}
+
+body,
+body.login-body {
+  background: #f4f5f7;
+  color: #111827;
+  min-height: 100vh;
+  padding-bottom: 30px;
+  overflow-x: hidden;
+}
+
+/* Links */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Simple utility row */
+.row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+/* ================================
+   NAVBAR
+================================ */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar .brand {
+  color: #2563eb;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.navbar nav a {
+  color: #4b5563;
+  margin-left: 18px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.navbar nav a:hover {
+  color: #2563eb;
+}
+
+/* ================================
+   LAYOUT
+================================ */
+.main {
+  width: 95%;
+  max-width: 1150px;
+  margin: 30px auto;
+}
+
+.container {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* ================================
+   CARDS
+================================ */
+.card {
+  background: #ffffff;
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+}
+
+.card.small {
+  width: 32%;
+  display: inline-block;
+  vertical-align: top;
+  margin-top: 16px;
+}
+
+/* For small cards on narrow screens */
+.cards-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* ================================
+   HERO (Dashboard top card)
+================================ */
+.hero {
+  padding: 22px 18px;
+}
+
+.hero h2 {
+  font-size: 1.4rem;
+  margin-bottom: 6px;
+}
+
+.hero .muted {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* ================================
+   BUTTONS
+================================ */
+.btn,
+.login-btn,
+#registerBtn,
+#submitReport,
+#findRouteBtn,
+#shareBtn,
+#sosBtn,
+#editProfile {
+  background: #2563eb;
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.btn:hover,
+.login-btn:hover,
+#registerBtn:hover,
+#submitReport:hover,
+#findRouteBtn:hover,
+#shareBtn:hover,
+#sosBtn:hover,
+#editProfile:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18);
+}
+
+.btn.ghost,
+.ghost {
+  background: #ffffff;
+  color: #2563eb;
+  border: 1px solid #cbd5f5;
+  box-shadow: none;
+}
+
+.btn.ghost:hover,
+.ghost:hover {
+  background: #eff4ff;
+}
+
+.danger {
+  background: #dc2626;
+  color: #ffffff;
+  border: none;
+}
+
+.danger:hover {
+  background: #b91c1c;
+}
+
+/* ================================
+   INPUTS & TEXTAREAS
+================================ */
+input,
+textarea {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #111827;
+  margin-top: 12px;
+  width: 100%;
+  font-size: 0.95rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus,
+textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+  outline: none;
+}
+
+textarea {
+  resize: vertical;
+}
+
+/* ================================
+   LOGIN / SIGNUP PAGES
+================================ */
+.login-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-container {
+  background: #ffffff;
+  padding: 26px 24px;
+  border-radius: 16px;
+  max-width: 360px;
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.08);
+  text-align: center;
+}
+
+.login-logo {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
+
+.login-container h2 {
+  font-size: 1.4rem;
+  margin-bottom: 4px;
+}
+
+.login-tag {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.login-btn,
+#registerBtn {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.signup-link {
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+.signup-link a {
+  color: #2563eb;
+  font-weight: 500;
+}
+
+/* ================================
+   MAP PAGE
+================================ */
+/* ================================
+   FULL MAP LAYOUT (Google Maps–like)
+================================ */
+.map-full-wrapper {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Map fills most of the page */
+.map-full {
+  height: calc(100vh - 120px); /* navbar + margins */
+  width: 100%;
+  border-radius: 12px;
+}
+
+/* Search bar floating on top center */
+.search-panel {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  background: #ffffff;
+  padding: 10px 14px;
+  border-radius: 999px;
+
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+
+  z-index: 1000; /* 🔴 VERY IMPORTANT */
+}
+
+.search-input {
+  min-width: 220px;
+  max-width: 260px;
+
+  background: #ffffff;
+  border: 1.5px solid #d1d5db;
+  color: #111827;
+
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+
+  z-index: 1001; /* above map */
+}
+
+/* Make buttons in the bar compact */
+.search-panel button {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.search-score {
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+/* Keep alerts overlay on top-right of map */
+.alerts {
+  position: absolute;
+  right: 16px;
+  top: 72px;
+  z-index: 25;
+}
+
+/* Responsive: stack search bar on small screens */
+@media (max-width: 768px) {
+  .search-panel {
+    flex-direction: column;
+    align-items: stretch;
+    border-radius: 16px;
+    width: 90%;
+  }
+
+  .search-input {
+    width: 100%;
+    max-width: none;
+  }
+
+  .search-panel button {
+    width: 100%;
+  }
+
+  .search-score {
+    text-align: center;
+    width: 100%;
+  }
+
+  .map-full {
+    height: calc(100vh - 160px);
+  }
+}
+
+
+/* ================================
+   PROFILE PAGE
+================================ */
+.profile {
+  text-align: center;
+}
+
+.avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: block;
+  margin: 0 auto 12px;
+  object-fit: cover;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
+}
+
+.profile h3 {
+  margin-bottom: 12px;
+}
+
+.profile .card.small {
+  text-align: left;
+}
+
+/* ================================
+   REPORT PAGE
+================================ */
+#rep-location,
+#rep-desc {
+  margin-top: 14px;
+}
+
+#attachMedia {
+  background: #ffffff;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+
+#attachMedia:hover {
+  background: #f3f4f6;
+}
+
+/* ================================
+   MISC UTILITIES
+================================ */
+.muted {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* ================================
+   RESPONSIVE
+================================ */
+@media (max-width: 900px) {
+  .map-wrapper {
+    grid-template-columns: 1fr;
+  }
+
+  .controls {
+    order: 2;
+    margin-top: 12px;
+  }
+
+  .map {
+    order: 1;
+    height: 60vh;
+  }
+
+  .cards-row {
+    flex-direction: column;
+  }
+
+  .card.small {
+    width: 100%;
+  }
+
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .navbar nav a {
+    margin-left: 0;
+    margin-right: 14px;
+  }
+}
+
+.leaflet-container {
+  z-index: 1;
+}
+.search-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+.arrow-marker {
+  font-size: 26px;
+  color: #2563eb;
+  transform-origin: center center;
+  transition: transform 0.3s linear;
+}
+
+
+
+
+
+body{
+margin:0;
+font-family: Arial, sans-serif;
+background:#c9d6e5;
+display:flex;
+justify-content:center;
+align-items:center;
+min-height:100vh;
+}
+
+.main-container{
+width:100%;
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+/* CARD */
+
+.card{
+width:420px;
+background:#f5f5f5;
+padding:30px;
+border-radius:18px;
+text-align:center;
+box-shadow:0 10px 30px rgba(0,0,0,0.2);
+}
+
+/* TITLE */
+
+.subtitle{
+color:#555;
+margin-bottom:20px;
+}
+
+/* BUTTONS */
+
+button{
+width:100%;
+padding:14px;
+margin-top:12px;
+border:none;
+border-radius:10px;
+font-size:16px;
+cursor:pointer;
+}
+
+/* LOGIN BUTTON */
+
+.login-btn{
+background:#3a5ce0;
+color:white;
+}
+
+/* SOS BUTTON */
+
+.sos-wrapper{
+display:flex;
+justify-content:center;
+margin:40px 0;
+}
+
+.sos-btn{
+width:200px;
+height:200px;
+border-radius:50%;
+background:red;
+color:white;
+font-size:28px;
+border:none;
+box-shadow:0 0 25px rgba(255,0,0,0.6);
+}
+
+/* GALLERY BUTTON */
+
+.gallery-btn{
+background:#165aa7;
+color:white;
+}
+
+/* CAMERA */
+
+.camera-container{
+display:none;
+flex-direction:column;
+align-items:center;
+margin-top:20px;
+position:relative;
+}
+
+#video{
+width:100%;
+max-width:380px;
+height:300px;
+object-fit:cover;
+border-radius:12px;
+}
+
+.home-btn{
+position:absolute;
+top:-10px;
+left:0;
+background:#3a5ce0;
+color:rgb(88, 79, 79);
+padding:6px 12px;
+border-radius:8px;
+font-size:14px;
+cursor:pointer;
+width:auto;
+}
+
+.top-row{
+display:flex;
+gap:10px;
+margin-bottom:10px;
+}
+
+.top-row button{
+width:50%;
+}

@@ -1,0 +1,11 @@
+{
+  "name": "friendsnavigator",
+  "version": "1.0.0",
+  "description": "FriendsNavigator - Real-time location sharing app",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {}
+}
+
+

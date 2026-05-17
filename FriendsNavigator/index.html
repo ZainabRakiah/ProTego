@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FriendsNavigator</title>
+
+  <link href="style.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script>
+    // Ensure Firebase is loaded before running script
+    window.firebaseReady = false;
+    if (typeof firebase !== 'undefined') {
+      window.firebaseReady = true;
+    } else {
+      window.addEventListener('load', () => {
+        if (typeof firebase !== 'undefined') {
+          window.firebaseReady = true;
+          if (window.initAppWhenReady) window.initAppWhenReady();
+        }
+      });
+    }
+  </script>
+</head>
+<body>
+  <header class="topbar"><h1 id="teamTitle">FriendsNavigator</h1></header>
+
+  <main id="homeView" class="view active">
+    <div class="card">
+      <button id="btnCreate" class="big">Create Team</button>
+      <button id="btnJoin" class="big outline">Join Team</button>
+    </div>
+    <div class="card">
+      <h3>Recent Teams</h3>
+      <p class="helper-text">Showing your 5 most used teams.</p>
+      <ul id="recentList"></ul>
+    </div>
+    <div class="card">
+      <h3>Find Me</h3>
+      <p class="helper-text">Join a team and tap the Find Me button on the map to jump back to your live position anytime.</p>
+    </div>
+  </main>
+
+  <section id="createView" class="view">
+    <div class="card">
+      <h2>Create Team</h2>
+      <input id="createName" placeholder="Team name" />
+      <input id="createDisplayName" placeholder="Your name (shown to the team)" />
+      <div class="row">
+        <button id="createSubmit" class="big">Create</button>
+        <button id="createCancel" class="big outline">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="joinView" class="view">
+    <div class="card">
+      <h2>Join Team</h2>
+      <input id="joinName" placeholder="Team name / id" />
+      <input id="joinDisplayName" placeholder="Your name (shown to the team)" />
+      <div class="row">
+        <button id="joinSubmit" class="big">Join</button>
+        <button id="joinCancel" class="big outline">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="mapView" class="view">
+    <div id="map"></div>
+
+    <div class="map-controls">
+      <button id="btnWaypointMode" class="control-btn" title="Drop Waypoints">📍</button>
+      <button id="btnRecenter" class="control-btn" title="Recenter to You">🎯</button>
+      <button id="btnLocateUs" class="control-chip" title="Find your live position"> Find Me</button>
+      <button id="btnWaypointPanel" class="control-btn" title="Start Adventure">📋</button>
+    </div>
+
+    <div id="directionsCard" class="directions-card hidden">
+      <div class="directions-text">
+        <strong id="directionDestination">Directions</strong>
+        <p id="directionDetails">Pick a waypoint to see route, distance, and ETA.</p>
+      </div>
+      <button id="clearDirections" class="small outline">Clear</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <strong id="teamNameDisplay"></strong>
+        <button id="btnClosePanel" class="close-btn">×</button>
+      </div>
+      
+      <div class="panel-tabs">
+        <button class="tab-btn active" data-tab="members">Members</button>
+        <button class="tab-btn" data-tab="waypoints">Start Adventure</button>
+      </div>
+
+      <div class="tab-content active" id="tabMembers">
+        <div id="membersList"></div>
+        <div class="row small">
+          <button id="leaveTeam" class="small outline">Leave this team</button>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tabWaypoints">
+        <div id="waypointsList"></div>
+        <button id="btnAddWaypoint" class="small">+ Add Waypoint</button>
+      </div>
+    </div>
+
+    <div id="etaPopup" class="eta-popup"></div>
+  </section>
+
+  <footer class="footer">FriendsNavigator - Real-time location sharing</footer>
+
+  <script src="script.js"></script>
+  <script>
+    // Debug: Check if script loaded
+    console.log("✅ HTML loaded, script.js should be loading...");
+    console.log("Firebase ready:", typeof firebase !== 'undefined');
+  </script>
+</body>
+</html>
+
+
