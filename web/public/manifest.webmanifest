@@ -1,0 +1,16 @@
+{
+  "name": "ProTego — Night Safety Companion",
+  "short_name": "ProTego",
+  "description": "Safest-route navigation, one-tap SOS, and an offline safety map.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0718",
+  "theme_color": "#0a0a12",
+  "categories": ["navigation", "utilities", "lifestyle"],
+  "icons": [
+    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

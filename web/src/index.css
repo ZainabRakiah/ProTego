@@ -1,0 +1,365 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+  ProTego is a night-safety product, so the dark palette is the primary design
+  and the light palette is the alternate. Both are defined explicitly.
+*/
+/*
+  Hue 282 (indigo-violet) is the spine of the palette: every neutral carries a
+  little of it, so greys read as "night" rather than as dead concrete. Accent
+  hues sit either side — 292 for brand violet, 224 for the cool secondary.
+*/
+:root {
+  --radius: 0.85rem;
+
+  --background: oklch(0.985 0.003 282);
+  --foreground: oklch(0.2 0.022 282);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.022 282);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.022 282);
+  --primary: oklch(0.54 0.215 292);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.955 0.008 282);
+  --secondary-foreground: oklch(0.28 0.024 282);
+  --muted: oklch(0.955 0.008 282);
+  --muted-foreground: oklch(0.505 0.022 282);
+  --accent: oklch(0.945 0.028 292);
+  --accent-foreground: oklch(0.32 0.075 292);
+  --destructive: oklch(0.575 0.235 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.895 0.012 282);
+  --input: oklch(0.895 0.012 282);
+  --ring: oklch(0.54 0.215 292);
+
+  /* Safety scale — used by the meter, the route legend and the grid overlay. */
+  --safe: oklch(0.66 0.16 156);
+  --caution: oklch(0.72 0.155 72);
+  --risk: oklch(0.585 0.225 22);
+
+  --surface-glow: oklch(0.54 0.215 292 / 0.13);
+  --shadow-color: 282 30% 12%;
+}
+
+.dark {
+  --background: oklch(0.145 0.023 282);
+  --foreground: oklch(0.965 0.005 282);
+  --card: oklch(0.198 0.026 282);
+  --card-foreground: oklch(0.965 0.005 282);
+  --popover: oklch(0.212 0.028 282);
+  --popover-foreground: oklch(0.965 0.005 282);
+  --primary: oklch(0.7 0.185 292);
+  --primary-foreground: oklch(0.155 0.03 292);
+  --secondary: oklch(0.268 0.028 282);
+  --secondary-foreground: oklch(0.965 0.005 282);
+  --muted: oklch(0.262 0.026 282);
+  --muted-foreground: oklch(0.735 0.028 282);
+  --accent: oklch(0.315 0.058 292);
+  --accent-foreground: oklch(0.95 0.03 292);
+  --destructive: oklch(0.655 0.225 22);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(1 0 0 / 0.11);
+  --input: oklch(1 0 0 / 0.14);
+  --ring: oklch(0.7 0.185 292);
+
+  --safe: oklch(0.79 0.175 158);
+  --caution: oklch(0.845 0.155 84);
+  --risk: oklch(0.695 0.21 22);
+
+  --surface-glow: oklch(0.7 0.185 292 / 0.22);
+  --shadow-color: 282 60% 3%;
+}
+
+/*
+  The lavender family, available anywhere as `--lavender-*` or `bg-lavender-*`.
+  Muted rather than neon — the dusty end of purple. Mirrors LAVENDER in
+  components/ui/background-shader.jsx, which mixes the deep end for the backdrop.
+*/
+:root {
+  --lavender-lavender: hsl(266 42% 76%);
+  --lavender-lilac: hsl(280 38% 72%);
+  --lavender-mauve: hsl(288 24% 62%);
+  --lavender-orchid: hsl(292 38% 60%);
+  --lavender-heather: hsl(268 20% 58%);
+  --lavender-periwinkle: hsl(248 52% 72%);
+  --lavender-wisteria: hsl(278 32% 54%);
+  --lavender-violet: hsl(272 48% 44%);
+  --lavender-amethyst: hsl(276 44% 38%);
+  --lavender-deep: hsl(268 46% 24%);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-safe: var(--safe);
+  --color-caution: var(--caution);
+  --color-risk: var(--risk);
+
+  --color-lavender: var(--lavender-lavender);
+  --color-lilac: var(--lavender-lilac);
+  --color-mauve: var(--lavender-mauve);
+  --color-orchid: var(--lavender-orchid);
+  --color-heather: var(--lavender-heather);
+  --color-periwinkle: var(--lavender-periwinkle);
+  --color-wisteria: var(--lavender-wisteria);
+  --color-violet: var(--lavender-violet);
+  --color-amethyst: var(--lavender-amethyst);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --animate-aurora: aurora 24s ease-in-out infinite alternate;
+  --animate-pulse-ring: pulse-ring 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shimmer: shimmer 2.4s linear infinite;
+  --animate-rise: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes aurora {
+  0% {
+    transform: translate3d(-6%, -4%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(5%, 3%, 0) scale(1.12);
+  }
+  100% {
+    transform: translate3d(-3%, 6%, 0) scale(1.04);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.75;
+  }
+  70% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* Anchor jumps and scrollIntoView glide instead of teleporting. */
+    scroll-behavior: smooth;
+    /* Reserve the scrollbar track so showing/hiding it never shifts layout. */
+    scrollbar-gutter: stable;
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 32%, transparent)
+      transparent;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family:
+      "Inter var", "Inter", ui-sans-serif, system-ui, -apple-system,
+      "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "ss01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100dvh;
+    /* Stop the page rubber-banding the whole document on trackpads/touch. */
+    overscroll-behavior-y: none;
+  }
+
+  /* Nothing may widen the page: horizontal overflow is what makes vertical
+     scrolling feel like it drifts sideways on trackpads. */
+  body,
+  #root {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  /*
+    Full-viewport routes (sign-in, live navigation) own the whole screen and
+    handle their own overflow internally. The document must not scroll behind
+    them, and the reserved scrollbar gutter — which exists to stop layout shift
+    on normal pages — would otherwise show as an empty strip down the edge.
+  */
+  html[data-fullscreen] {
+    scrollbar-gutter: auto;
+    overflow: hidden;
+  }
+
+  html[data-fullscreen],
+  html[data-fullscreen] body {
+    height: 100%;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Headings and sticky targets clear the sticky mobile header when scrolled to. */
+  :is(h1, h2, h3, [id]) {
+    scroll-margin-top: 5rem;
+  }
+
+  /* Tabular figures keep live numbers from jittering as they update. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* The soft inner highlight that gives cards their lifted, glassy edge. */
+  .surface {
+    background:
+      linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--card) 90%, white 10%),
+        var(--card) 60%
+      );
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklab, white 9%, transparent),
+      0 1px 2px -1px hsl(var(--shadow-color) / 0.36),
+      0 6px 16px -8px hsl(var(--shadow-color) / 0.4),
+      0 16px 40px -20px hsl(var(--shadow-color) / 0.5);
+  }
+
+  .glow-ring {
+    box-shadow:
+      0 0 0 1px var(--surface-glow),
+      0 0 48px -14px var(--surface-glow),
+      0 16px 40px -20px hsl(var(--shadow-color) / 0.5);
+  }
+
+  /* Any scrollable region inside the app: momentum + contained overscroll, so
+     reaching the end of a list never starts scrolling the page behind it. */
+  .scroll-area,
+  [class*="overflow-y-auto"],
+  [class*="overflow-auto"] {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+
+/* ---- Leaflet: repaint the default light chrome to match the app ---- */
+.leaflet-container {
+  background: oklch(0.19 0.02 285);
+  font-family: inherit;
+  outline: none;
+}
+
+/*
+  Recolour light raster tiles into a night map. Scoped to .map-invert so the
+  satellite and dark-matter basemaps — which are already dark — are left alone.
+*/
+.dark .map-invert .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(190deg) brightness(0.92) contrast(0.9) saturate(0.75);
+}
+
+.leaflet-control-zoom a,
+.leaflet-bar a {
+  background: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: var(--accent) !important;
+}
+
+.leaflet-control-attribution {
+  background: color-mix(in oklab, var(--card) 80%, transparent) !important;
+  color: var(--muted-foreground) !important;
+  backdrop-filter: blur(8px);
+  font-size: 10px;
+}
+
+.leaflet-control-attribution a {
+  color: var(--muted-foreground) !important;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--card) !important;
+  color: var(--card-foreground) !important;
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px -12px oklch(0 0 0 / 0.6);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--muted-foreground) 30%, transparent);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--muted-foreground) 50%, transparent);
+  background-clip: content-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
