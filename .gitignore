@@ -34,4 +34,5 @@ __pycache__/
 *.pyc
 node_modules/
 .env
-.DS_Store
+.DS_Storedatabase*.db
+database.backup*.db

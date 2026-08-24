@@ -1,0 +1,16 @@
+{
+  "name": "protego",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ProTego — night safety companion. Safest-route navigation, SOS, trusted contacts and an evidence vault.",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm --prefix web run build",
+    "preview": "npm --prefix web run preview",
+    "backend": "python backend/app.py",
+    "postinstall": "npm --prefix web install"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
