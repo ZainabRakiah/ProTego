@@ -1,0 +1,17 @@
+.git
+.github
+.agents
+.config
+node_modules
+web/node_modules
+*venv*
+ProTego_venv
+accident_hospital_service
+ml
+backend
+*.pkl
+*.joblib
+*.csv
+*.pt
+*.onnx
+.DS_Store
