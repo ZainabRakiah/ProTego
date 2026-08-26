@@ -9,24 +9,33 @@
       }
     },
     {
-      "src": "backend/app.py",
+      "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
-        "excludeFiles": ["web/node_modules/**", "node_modules/**", "**/*venv/**", "**/*.venv/**"]
+        "includeFiles": "{safety_route/**,data/**,FriendsNavigator/**}"
       }
     }
   ],
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/backend/app.py"
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/safecam(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/data(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/friendsnavigator(.*)",
+      "destination": "/api/index.py"
     },
     {
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "env": {
-    "PYTHON_VERSION": "3.11"
-  }
+  ]
 }

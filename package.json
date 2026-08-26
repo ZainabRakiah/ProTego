@@ -7,7 +7,7 @@
     "dev": "node scripts/dev.mjs",
     "build": "npm --prefix web run build && rm -rf web/node_modules node_modules",
     "preview": "npm --prefix web run preview",
-    "backend": "python backend/app.py",
+    "backend": "python api/index.py",
     "postinstall": "npm --prefix web install"
   },
   "engines": {
