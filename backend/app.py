@@ -12,6 +12,9 @@ import sqlite3
 import secrets
 import json
 import datetime
+from dotenv import load_dotenv
+load_dotenv()
+
 from functools import lru_cache
 from urllib.request import urlopen, Request
 from urllib.parse import urlencode
@@ -798,13 +801,13 @@ def signup():
         conn = get_db()
         cur = conn.cursor()
 
-        cur.execute("SELECT id FROM users WHERE lower(email) = ?", (email,))
+        cur.execute("SELECT id FROM users WHERE lower(email) = %s", (email,))
         if cur.fetchone():
             return jsonify({"error": "That email is already registered. Try signing in."}), 409
 
         cur.execute("""
             INSERT INTO users (name, email, phone, password_hash)
-            VALUES (?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s)
         """, (name, email, phone, password_hash))
         conn.commit()
 
@@ -841,7 +844,7 @@ def login():
     try:
         cur = conn.cursor()
         # Case-insensitive so "Zoya@x.com" and "zoya@x.com" are one account.
-        cur.execute("SELECT * FROM users WHERE lower(email) = ?", (email,))
+        cur.execute("SELECT * FROM users WHERE lower(email) = %s", (email,))
         user = cur.fetchone()
     finally:
         conn.close()
@@ -919,7 +922,7 @@ def password_forgot():
     conn = get_db()
     try:
         cur = conn.cursor()
-        cur.execute("SELECT id, phone FROM users WHERE lower(email) = ?", (email,))
+        cur.execute("SELECT id, phone FROM users WHERE lower(email) = %s", (email,))
         user = cur.fetchone()
     finally:
         conn.close()
@@ -1000,7 +1003,7 @@ def save_evidence():
     cur.execute("""
         INSERT INTO evidence
         (user_id, image_base64, lat, lng, accuracy, type, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
     """, (user_id, image, lat, lng, accuracy, evidence_type, timestamp))
 
     conn.commit()
@@ -1063,7 +1066,7 @@ def add_location():
 
     cur.execute("""
         INSERT INTO locations (user_id, label, lat, lng)
-        VALUES (?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s)
     """, (user_id, label, lat, lng))
 
     location_id = cur.lastrowid
@@ -1169,7 +1172,7 @@ def add_contact():
     cur.execute("""
         INSERT INTO trusted_contacts
         (location_id, name, phone, email)
-        VALUES (?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s)
     """, (location_id, name, phone, email))
 
     conn.commit()
@@ -1202,7 +1205,7 @@ def bulk_add_contacts():
             cur.execute("""
                 INSERT INTO trusted_contacts
                 (location_id, name, phone, email)
-                VALUES (?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s)
             """, (location_id, name, phone, email))
 
     conn.commit()
@@ -1613,7 +1616,7 @@ def _log_sos(user_id, lat, lng, message):
     cur = conn.cursor()
     cur.execute("""
         INSERT INTO sos_alerts (user_id, lat, lng, message, timestamp)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s)
     """, (user_id, lat, lng, message, int(time.time())))
     conn.commit()
     conn.close()
@@ -1739,7 +1742,7 @@ def safecam_upload():
     cur = conn.cursor()
     cur.execute("""
         INSERT INTO evidence (user_id, image_base64, lat, lng, accuracy, type, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
     """, (int(user_id), image, lat, lng, None, "NORMAL", int(time.time())))
     conn.commit()
     conn.close()
@@ -1760,7 +1763,7 @@ def safecam_upload_frame():
     cur = conn.cursor()
     cur.execute("""
         INSERT INTO evidence (user_id, image_base64, lat, lng, accuracy, type, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
     """, (int(user_id), image, lat, lng, None, "SOS", int(time.time())))
     conn.commit()
     conn.close()
@@ -1838,7 +1841,7 @@ def create_report():
     cur.execute("""
         INSERT INTO reports
         (user_id, location_label, lat, lng, description, image_base64, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
     """, (user_id, location_label, lat, lng, description, image_base64, timestamp))
 
     conn.commit()
