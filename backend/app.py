@@ -35,7 +35,7 @@ app = Flask(__name__)
 def home():
     return "ProTego deployed successfully!"
 
-from db import get_db, init_db
+from backend.db import get_db, init_db
 
 # Get the project root directory (parent of backend)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
