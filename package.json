@@ -5,7 +5,7 @@
   "description": "ProTego — night safety companion. Safest-route navigation, SOS, trusted contacts and an evidence vault.",
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "build": "npm --prefix web run build",
+    "build": "npm --prefix web run build && rm -rf web/node_modules node_modules",
     "preview": "npm --prefix web run preview",
     "backend": "python backend/app.py",
     "postinstall": "npm --prefix web install"
