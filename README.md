@@ -113,7 +113,6 @@ pedestrian-only links, one-way rules that do not apply on foot) you would need
 a self-hosted OSRM with the foot profile, or a routing provider that serves one.
 
 ## India-only scope
-
 Place search is restricted to India: Nominatim is queried with
 `countrycodes=in` plus a bounded India viewbox, and results are filtered again
 client-side by `isInIndia()` in [`web/src/lib/geo.js`](web/src/lib/geo.js).
