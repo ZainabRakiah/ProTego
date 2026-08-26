@@ -12,7 +12,7 @@
       "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
-        "includeFiles": "{safety_route/**,data/**,FriendsNavigator/**}"
+        "includeFiles": "{safety_route/backend/safety_model.pkl,safety_route/data1/ProTego.csv,safety_route/data1/bangalore_hospitals.csv,data/ProTego.csv,data/bangalore_hospitals.csv,FriendsNavigator/**}"
       }
     }
   ],
