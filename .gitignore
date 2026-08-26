@@ -36,3 +36,21 @@ node_modules/
 .env
 .DS_Storedatabase*.db
 database.backup*.db
+
+
+# ProTego datasets
+safety_route/data/*.csv
+safety_route/data1/*.csv
+camera/frontend/*.csv
+backend/offline_pack.json
+
+# Python environments
+venv/
+safety_route/venv/
+backend/venv/
+.venv/
+ProTego_venv/
+
+# Python cache
+__pycache__/
+*.pyc
