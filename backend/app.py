@@ -47,9 +47,13 @@ init_db()
 # ============================
 # SAFETY MODEL (ML + RULE-BASED)
 # ============================
-_SAFETY_MODEL = None  # RandomForestRegressor trained on grid-based features
-_LAST_TRAIN_TIME = 0
-_RETRAIN_INTERVAL_SEC = 6 * 3600  # 6 hours periodic retrain
+import joblib
+_MODEL_PATH = os.path.join(BASE_DIR, "safety_route", "backend", "safety_model.pkl")
+_SAFETY_MODEL = None
+try:
+    _SAFETY_MODEL = joblib.load(_MODEL_PATH)
+except Exception as e:
+    print(f"[safety-ml] Could not load pre-trained safety model: {e}")
 _GRID_STEP = 0.0009  # ~100m
 
 
@@ -283,145 +287,8 @@ def _count_within(points, lat, lng, radius_m=500.0, nearest_all=False):
     return count, nearest_m
     
 
-def _train_safety_model():
-    """
-    Train a RandomForestRegressor on grid-based features.
-    Data: ProTego.csv (labeled) + synthetic samples from user reports/SOS (feedback loop).
-    Features: police, lamp, camera, incident counts (500m), is_night, crime_density.
-    Learns patterns from both static dataset and live user incident reports.
-    """
-    global _SAFETY_MODEL, _LAST_TRAIN_TIME
-    try:
-        from sklearn.ensemble import RandomForestRegressor
-    except Exception:
-        print("[safety-ml] scikit-learn not installed; using rule-based safety only.")
-        _SAFETY_MODEL = None
-        return
-
-    pts = _load_protego_points()
-    db_incidents = _get_db_incident_points()
-
-    def incident_count_at(lat, lon):
-        return _count_within(pts["incident"] + db_incidents, lat, lon, 500.0)[0]
-
-    X = []
-    y = []
-
-    # 1) ProTego.csv labeled data
-    candidates = [
-        os.path.join(BASE_DIR, "safety_route", "data1", "ProTego.csv"),
-        os.path.join(BASE_DIR, "data", "ProTego.csv"),
-    ]
-    path = None
-    for p in candidates:
-        if os.path.exists(p):
-            path = p
-            break
-
-    if path:
-        try:
-            with open(path, "r", encoding="utf-8", errors="ignore", newline="") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    try:
-                        lat = float(row.get("lat") or "")
-                        lon = float(row.get("lon") or row.get("lng") or "")
-                    except Exception:
-                        continue
-                    raw_score = row.get("safety_score")
-                    if raw_score is None or raw_score == "":
-                        continue
-                    try:
-                        s_val = float(raw_score)
-                    except Exception:
-                        continue
-                    if 0.0 <= s_val <= 1.0:
-                        s_val *= 100.0
-
-                    police_count, _ = _count_within(pts["police"], lat, lon, 500.0)
-                    lamp_count, _ = _count_within(pts["lamp"], lat, lon, 500.0)
-                    camera_count, _ = _count_within(pts["camera"], lat, lon, 500.0)
-                    inc_count = incident_count_at(lat, lon)
-                    crime_density = inc_count / max(1, police_count + lamp_count + camera_count) if (police_count + lamp_count + camera_count) > 0 else inc_count
-
-                    feat = [police_count, lamp_count, camera_count, inc_count, 0, crime_density]
-                    X.append(feat)
-                    y.append(s_val)
-        except Exception as e:
-            print(f"[safety-ml] Failed to load ProTego.csv: {e}")
-
-    # 2) Synthetic samples from user reports & SOS (feedback loop - learn from real incidents)
-    for (lat, lon) in db_incidents:
-        police_count, _ = _count_within(pts["police"], lat, lon, 500.0)
-        lamp_count, _ = _count_within(pts["lamp"], lat, lon, 500.0)
-        camera_count, _ = _count_within(pts["camera"], lat, lon, 500.0)
-        inc_count = incident_count_at(lat, lon)
-        crime_density = inc_count / max(1, police_count + lamp_count + camera_count) if (police_count + lamp_count + camera_count) > 0 else inc_count
-
-        # Reports/SOS = low safety (25–40); infra helps slightly
-        base = 28.0
-        if police_count > 0:
-            base += 5.0
-        if camera_count > 0:
-            base += 3.0
-        if lamp_count > 0:
-            base += 2.0
-        s_val = min(45.0, base + min(inc_count, 3) * -2.0)
-
-        feat = [police_count, lamp_count, camera_count, inc_count, 0, crime_density]
-        X.append(feat)
-        y.append(max(10.0, s_val))
-
-    if len(X) < 50:
-        if path:
-            print(f"[safety-ml] Not enough samples ({len(X)}); using rule-based only.")
-        else:
-            print("[safety-ml] ProTego.csv not found and no DB incidents; using rule-based only.")
-        _SAFETY_MODEL = None
-        return
-
-    try:
-        model = RandomForestRegressor(
-            n_estimators=100,
-            max_depth=12,
-            min_samples_leaf=2,
-            random_state=42,
-            n_jobs=-1,
-        )
-        model.fit(X, y)
-        _SAFETY_MODEL = model
-        _LAST_TRAIN_TIME = time.time()
-        print(f"[safety-ml] Trained on {len(X)} samples (incl. {len(db_incidents)} from user reports/SOS).")
-    except Exception as e:
-        print(f"[safety-ml] Training failed: {e}")
-        _SAFETY_MODEL = None
-
-
-# Run training once at startup (after function is defined)
-_train_safety_model()
-
-
 def _schedule_retrain(reason=""):
-    """Trigger async retrain (e.g. after new report)."""
-    # A retrain always follows a new report or SOS, so this is the one place
-    # that needs to drop the cached incident list.
     _invalidate_incident_cache()
-
-    def _run():
-        time.sleep(2)  # debounce
-        print(f"[safety-ml] Retraining ({reason})...")
-        _train_safety_model()
-
-    t = threading.Thread(target=_run, daemon=True)
-    t.start()
-
-
-def _periodic_retrain_worker():
-    """Background thread: retrain every RETRAIN_INTERVAL_SEC."""
-    while True:
-        time.sleep(_RETRAIN_INTERVAL_SEC)
-        print("[safety-ml] Periodic retrain...")
-        _train_safety_model()
 
 
 def _is_night_hour(hour):
@@ -507,12 +374,9 @@ def _safety_components(lat, lng, hour=None):
     return {
         "rule_score": score,
         "ml_vec": [
-            police_count,
-            lamp_count,
-            camera_count,
             incident_count,
-            1 if night else 0,
-            crime_density,
+            camera_count,
+            police_count,
         ],
         "nearest_police_m": nearest_police_m,
         "features": {
@@ -672,12 +536,9 @@ def _build_offline_pack(step=_OFFLINE_PACK_STEP):
             crime_density = np.where(infra_total > 0, incident / np.maximum(1.0, infra_total), incident)
             features = np.column_stack(
                 [
-                    police,
-                    lamp,
-                    camera,
                     incident,
-                    np.full(total_cells, 1.0 if night else 0.0, dtype=np.float32),
-                    crime_density,
+                    camera,
+                    police,
                 ]
             )
             try:
@@ -1103,7 +964,7 @@ def password_reset():
     try:
         cur = conn.cursor()
         cur.execute(
-            "UPDATE users SET password_hash = ? WHERE id = ?",
+            "UPDATE users SET password_hash = %s WHERE id = %s",
             (generate_password_hash(new_password), entry["user_id"]),
         )
         conn.commit()
@@ -1157,7 +1018,7 @@ def get_evidence(user_id):
     cur.execute("""
         SELECT id, image_base64, type, timestamp
         FROM evidence
-        WHERE user_id = ?
+        WHERE user_id = %s
         ORDER BY timestamp DESC
     """, (user_id,))
 
@@ -1173,7 +1034,7 @@ def delete_evidence(evidence_id):
     conn = get_db()
     cur = conn.cursor()
 
-    cur.execute("DELETE FROM evidence WHERE id = ?", (evidence_id,))
+    cur.execute("DELETE FROM evidence WHERE id = %s", (evidence_id,))
 
     conn.commit()
     conn.close()
@@ -1218,7 +1079,7 @@ def get_locations(user_id):
     conn = get_db()
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM locations WHERE user_id = ?", (user_id,))
+    cur.execute("SELECT * FROM locations WHERE user_id = %s", (user_id,))
     rows = cur.fetchall()
 
     conn.close()
@@ -1234,7 +1095,7 @@ def get_locations_with_contacts(user_id):
         cur = conn.cursor()
 
         # Get all locations for user
-        cur.execute("SELECT * FROM locations WHERE user_id = ?", (user_id,))
+        cur.execute("SELECT * FROM locations WHERE user_id = %s", (user_id,))
         locations = cur.fetchall()
 
         result = []
@@ -1244,7 +1105,7 @@ def get_locations_with_contacts(user_id):
             # Get contacts for this location
             cur.execute("""
                 SELECT * FROM trusted_contacts
-                WHERE location_id = ?
+                WHERE location_id = %s
                 ORDER BY id
             """, (loc["id"],))
             contacts = cur.fetchall()
@@ -1272,8 +1133,8 @@ def delete_location(location_id):
         # Autocommit is on, so wrap these two so a location can never lose its
         # contacts without itself being removed.
         cur.execute("BEGIN")
-        cur.execute("DELETE FROM trusted_contacts WHERE location_id = ?", (location_id,))
-        cur.execute("DELETE FROM locations WHERE id = ?", (location_id,))
+        cur.execute("DELETE FROM trusted_contacts WHERE location_id = %s", (location_id,))
+        cur.execute("DELETE FROM locations WHERE id = %s", (location_id,))
         conn.commit()
     except Exception:
         conn.rollback()
@@ -1359,7 +1220,7 @@ def get_contacts(location_id):
 
     cur.execute("""
         SELECT * FROM trusted_contacts
-        WHERE location_id = ?
+        WHERE location_id = %s
     """, (location_id,))
 
     rows = cur.fetchall()
@@ -1383,8 +1244,8 @@ def update_contact(contact_id):
 
     cur.execute("""
         UPDATE trusted_contacts
-        SET name=?, phone=?, email=?
-        WHERE id=?
+        SET name=%s, phone=%s, email=%s
+        WHERE id=%s
     """,(name,phone,email,contact_id))
 
     conn.commit()
@@ -1400,7 +1261,7 @@ def delete_contact(contact_id):
     conn = get_db()
     cur = conn.cursor()
 
-    cur.execute("DELETE FROM trusted_contacts WHERE id=?", (contact_id,))
+    cur.execute("DELETE FROM trusted_contacts WHERE id=%s", (contact_id,))
 
     conn.commit()
     conn.close()
@@ -1852,7 +1713,7 @@ def safecam_login():
 
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE id = ?", (int(user_id),))
+    cur.execute("SELECT * FROM users WHERE id = %s", (int(user_id),))
     user = cur.fetchone()
     conn.close()
 
@@ -1932,7 +1793,7 @@ def update_profile():
 
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT name, phone, address FROM users WHERE id = ?", (user_id,))
+    cur.execute("SELECT name, phone, address FROM users WHERE id = %s", (user_id,))
     row = cur.fetchone()
     if not row:
         conn.close()
@@ -1940,7 +1801,7 @@ def update_profile():
     n = name if name is not None else (row[0] or "")
     p = phone if phone is not None else (row[1] or "")
     a = address if address is not None else (row[2] or "")
-    cur.execute("UPDATE users SET name = ?, phone = ?, address = ? WHERE id = ?", (n, p, a, user_id))
+    cur.execute("UPDATE users SET name = %s, phone = %s, address = %s WHERE id = %s", (n, p, a, user_id))
 
     conn.commit()
     conn.close()
@@ -2063,8 +1924,6 @@ def open_browser():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
     # Periodic retrain thread (grid-based ML learns from new data every 6h)
-    retrain_thread = threading.Thread(target=_periodic_retrain_worker, daemon=True)
-    retrain_thread.start()
 
     # `npm run dev` starts this as an API server and opens Vite's URL instead,
     # so it sets NO_BROWSER=1 to keep a second tab from popping up.
