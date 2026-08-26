@@ -2,8 +2,6 @@ flask
 flask-cors
 werkzeug
 gunicorn
-numpy
 joblib
-xgboost
 psycopg2-binary
 python-dotenv

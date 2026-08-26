@@ -50,14 +50,24 @@ init_db()
 # ============================
 # SAFETY MODEL (ML + RULE-BASED)
 # ============================
-import joblib
 _MODEL_PATH = os.path.join(BASE_DIR, "safety_route", "backend", "safety_model.pkl")
 _SAFETY_MODEL = None
 try:
+    import joblib
     _SAFETY_MODEL = joblib.load(_MODEL_PATH)
 except Exception as e:
     print(f"[safety-ml] Could not load pre-trained safety model: {e}")
 _GRID_STEP = 0.0009  # ~100m
+
+# Optional heavy imports — these are only needed for _build_offline_pack().
+# On Vercel they are not installed to stay under the 500MB limit.
+try:
+    import numpy as np
+    _HAS_NUMPY = True
+except ImportError:
+    np = None
+    _HAS_NUMPY = False
+    print("[startup] numpy not available — using pre-built offline pack only")
 
 
 # ============================
@@ -469,8 +479,18 @@ def _disc_kernel(np, step, centre_lat, radius_m=500.0):
 
 
 def _build_offline_pack(step=_OFFLINE_PACK_STEP):
-    """Build the downloadable safety grid. Returns the pack dict."""
-    import numpy as np
+    """Build the downloadable safety grid. Returns the pack dict.
+
+    Requires numpy and scipy. On Vercel (where they are not installed to stay
+    under the 500 MB function limit) we always serve the pre-built
+    offline_pack.json instead, so this function is never called there.
+    """
+    if not _HAS_NUMPY:
+        raise RuntimeError(
+            "numpy/scipy not installed — cannot rebuild offline pack. "
+            "Serve the pre-built offline_pack.json instead."
+        )
+
     from scipy.ndimage import convolve
 
     pts = _load_protego_points()
