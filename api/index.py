@@ -8,7 +8,6 @@ import threading
 import time
 import math
 import csv
-import sqlite3
 import secrets
 import json
 import datetime
@@ -35,7 +34,7 @@ app = Flask(__name__)
 def home():
     return "ProTego deployed successfully!"
 
-from db import get_db, init_db
+from db import get_db, init_db, add_document, get_document, query_collection, update_document, delete_document
 
 # Get the project root directory (parent of backend)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -146,18 +145,17 @@ def _get_db_incident_points():
     """
     points = []
     try:
-        conn = get_db()
-        cur = conn.cursor()
-        for table, lat_col, lng_col in [("reports", "lat", "lng"), ("sos_alerts", "lat", "lng")]:
-            cur.execute(f"SELECT {lat_col}, {lng_col} FROM {table} WHERE {lat_col} IS NOT NULL AND {lng_col} IS NOT NULL")
-            for row in cur.fetchall():
+        db = get_db()
+        for collection_name in ("reports", "sos_alerts"):
+            docs = db.collection(collection_name).stream()
+            for doc in docs:
+                d = doc.to_dict()
                 try:
-                    lat, lng = float(row[0]), float(row[1])
+                    lat, lng = float(d.get("lat", 0)), float(d.get("lng", 0))
                     if -90 <= lat <= 90 and -180 <= lng <= 180:
                         points.append((lat, lng))
                 except (TypeError, ValueError):
                     pass
-        conn.close()
     except Exception as e:
         print(f"[safety-ml] Could not load DB incidents: {e}")
     return points
@@ -816,35 +814,25 @@ def signup():
 
     password_hash = generate_password_hash(password)
 
-    conn = None
     try:
-        conn = get_db()
-        cur = conn.cursor()
-
-        cur.execute("SELECT id FROM users WHERE lower(email) = %s", (email,))
-        if cur.fetchone():
+        # Check if email already exists
+        existing = query_collection("users", "email", "==", email)
+        if existing:
             return jsonify({"error": "That email is already registered. Try signing in."}), 409
 
-        cur.execute("""
-            INSERT INTO users (name, email, phone, password_hash)
-            VALUES (%s, %s, %s, %s)
-        """, (name, email, phone, password_hash))
-        conn.commit()
+        doc_id = add_document("users", {
+            "name": name,
+            "email": email,
+            "phone": phone,
+            "password_hash": password_hash,
+            "address": None,
+        })
 
         return jsonify({"message": "User registered successfully"}), 201
 
-    except sqlite3.IntegrityError:
-        # The only error that genuinely means "taken" — a UNIQUE violation.
-        return jsonify({"error": "That email is already registered. Try signing in."}), 409
     except Exception as e:
-        # Previously every failure was reported as "Email already exists", which
-        # hid real faults (a locked database) behind a wrong message and left
-        # users unable to sign in to an account that was never created.
         print(f"[signup] failed: {type(e).__name__}: {e}")
         return jsonify({"error": "Could not create the account. Please try again."}), 500
-    finally:
-        if conn is not None:
-            conn.close()
 
 
 # ============================
@@ -860,31 +848,23 @@ def login():
     if not email or not password:
         return jsonify({"error": "Email and password required"}), 400
 
-    conn = get_db()
-    try:
-        cur = conn.cursor()
-        # Case-insensitive so "Zoya@x.com" and "zoya@x.com" are one account.
-        cur.execute("SELECT * FROM users WHERE lower(email) = %s", (email,))
-        user = cur.fetchone()
-    finally:
-        conn.close()
+    # Case-insensitive: emails are stored normalised (lowercased).
+    users = query_collection("users", "email", "==", email)
+    user = users[0] if users else None
 
     # One message for both cases: saying which half was wrong tells an attacker
     # which emails are registered.
     if not user or not check_password_hash(user["password_hash"], password):
         return jsonify({"error": "Incorrect email or password"}), 401
 
-    # Convert Row to dict for easier access
-    user_dict = dict(user)
-    
     return jsonify({
         "message": "Login successful",
         "user": {
-            "id": user_dict["id"],
-            "name": user_dict["name"],
-            "email": user_dict["email"],
-            "phone": user_dict.get("phone") or None,
-            "address": user_dict.get("address") or None
+            "id": user["id"],
+            "name": user["name"],
+            "email": user["email"],
+            "phone": user.get("phone") or None,
+            "address": user.get("address") or None
         }
     }), 200
 
@@ -939,13 +919,8 @@ def password_forgot():
         return jsonify({"error": "Too many attempts. Try again in 15 minutes."}), 429
     _note_reset_attempt(email)
 
-    conn = get_db()
-    try:
-        cur = conn.cursor()
-        cur.execute("SELECT id, phone FROM users WHERE lower(email) = %s", (email,))
-        user = cur.fetchone()
-    finally:
-        conn.close()
+    users = query_collection("users", "email", "==", email)
+    user = users[0] if users else None
 
     # Compare digits only: "+91 93804 28285" and "9380428285" are the same number.
     def digits(v):
@@ -983,16 +958,9 @@ def password_reset():
     if not entry:
         return jsonify({"error": "This reset link has expired. Start again."}), 400
 
-    conn = get_db()
-    try:
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE users SET password_hash = %s WHERE id = %s",
-            (generate_password_hash(new_password), entry["user_id"]),
-        )
-        conn.commit()
-    finally:
-        conn.close()
+    update_document("users", entry["user_id"], {
+        "password_hash": generate_password_hash(new_password),
+    })
 
     # Single use.
     _RESET_TOKENS.pop(token, None)
@@ -1017,50 +985,39 @@ def save_evidence():
     if not user_id or not image or not evidence_type or not timestamp:
         return jsonify({"error": "Missing fields"}), 400
 
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO evidence
-        (user_id, image_base64, lat, lng, accuracy, type, timestamp)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (user_id, image, lat, lng, accuracy, evidence_type, timestamp))
-
-    conn.commit()
-    conn.close()
+    add_document("evidence", {
+        "user_id": user_id,
+        "image_base64": image,
+        "lat": lat,
+        "lng": lng,
+        "accuracy": accuracy,
+        "type": evidence_type,
+        "timestamp": timestamp,
+    })
 
     return jsonify({"message": "Evidence stored"}), 201
 
 
-@app.route("/api/evidence/<int:user_id>", methods=["GET"])
+@app.route("/api/evidence/<user_id>", methods=["GET"])
 def get_evidence(user_id):
 
-    conn = get_db()
-    cur = conn.cursor()
+    rows = query_collection("evidence", "user_id", "==", user_id)
+    # Also try integer match in case user_id was stored as int
+    if not rows:
+        try:
+            rows = query_collection("evidence", "user_id", "==", int(user_id))
+        except (ValueError, TypeError):
+            pass
+    # Sort by timestamp descending
+    rows.sort(key=lambda r: r.get("timestamp", 0), reverse=True)
 
-    cur.execute("""
-        SELECT id, image_base64, type, timestamp
-        FROM evidence
-        WHERE user_id = %s
-        ORDER BY timestamp DESC
-    """, (user_id,))
-
-    rows = cur.fetchall()
-    conn.close()
-
-    return jsonify([dict(r) for r in rows]), 200
+    return jsonify([{"id": r["id"], "image_base64": r.get("image_base64"), "type": r.get("type"), "timestamp": r.get("timestamp")} for r in rows]), 200
 
 
-@app.route("/api/evidence/<int:evidence_id>", methods=["DELETE"])
+@app.route("/api/evidence/<evidence_id>", methods=["DELETE"])
 def delete_evidence(evidence_id):
 
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("DELETE FROM evidence WHERE id = %s", (evidence_id,))
-
-    conn.commit()
-    conn.close()
+    delete_document("evidence", str(evidence_id))
 
     return jsonify({"message": "Evidence deleted"}), 200
 
@@ -1081,62 +1038,45 @@ def add_location():
     if not user_id or not label:
         return jsonify({"error": "Missing fields"}), 400
 
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO locations (user_id, label, lat, lng)
-        VALUES (%s, %s, %s, %s)
-    """, (user_id, label, lat, lng))
-
-    location_id = cur.lastrowid
-    conn.commit()
-    conn.close()
+    location_id = add_document("locations", {
+        "user_id": user_id,
+        "label": label,
+        "lat": lat,
+        "lng": lng,
+    })
 
     return jsonify({"message": "Location added", "location_id": location_id}), 201
 
 
-@app.route("/api/locations/<int:user_id>", methods=["GET"])
+@app.route("/api/locations/<user_id>", methods=["GET"])
 def get_locations(user_id):
 
-    conn = get_db()
-    cur = conn.cursor()
+    rows = query_collection("locations", "user_id", "==", user_id)
+    if not rows:
+        try:
+            rows = query_collection("locations", "user_id", "==", int(user_id))
+        except (ValueError, TypeError):
+            pass
 
-    cur.execute("SELECT * FROM locations WHERE user_id = %s", (user_id,))
-    rows = cur.fetchall()
-
-    conn.close()
-
-    return jsonify([dict(r) for r in rows]), 200
+    return jsonify(rows), 200
 
 
 # GET ALL LOCATIONS WITH CONTACTS GROUPED
-@app.route("/api/locations/<int:user_id>/with-contacts", methods=["GET"])
+@app.route("/api/locations/<user_id>/with-contacts", methods=["GET"])
 def get_locations_with_contacts(user_id):
     try:
-        conn = get_db()
-        cur = conn.cursor()
-
-        # Get all locations for user
-        cur.execute("SELECT * FROM locations WHERE user_id = %s", (user_id,))
-        locations = cur.fetchall()
+        locations = query_collection("locations", "user_id", "==", user_id)
+        if not locations:
+            try:
+                locations = query_collection("locations", "user_id", "==", int(user_id))
+            except (ValueError, TypeError):
+                pass
 
         result = []
         for loc in locations:
-            location_dict = dict(loc)
-            
-            # Get contacts for this location
-            cur.execute("""
-                SELECT * FROM trusted_contacts
-                WHERE location_id = %s
-                ORDER BY id
-            """, (loc["id"],))
-            contacts = cur.fetchall()
-            
-            location_dict["contacts"] = [dict(c) for c in contacts]
-            result.append(location_dict)
-
-        conn.close()
+            contacts = query_collection("trusted_contacts", "location_id", "==", loc["id"])
+            loc["contacts"] = contacts
+            result.append(loc)
 
         return jsonify(result), 200
     except Exception as e:
@@ -1147,23 +1087,16 @@ def get_locations_with_contacts(user_id):
 
 
 # DELETE LOCATION (cascade deletes contacts)
-@app.route("/api/locations/<int:location_id>", methods=["DELETE"])
+@app.route("/api/locations/<location_id>", methods=["DELETE"])
 def delete_location(location_id):
 
-    conn = get_db()
-    try:
-        cur = conn.cursor()
-        # Autocommit is on, so wrap these two so a location can never lose its
-        # contacts without itself being removed.
-        cur.execute("BEGIN")
-        cur.execute("DELETE FROM trusted_contacts WHERE location_id = %s", (location_id,))
-        cur.execute("DELETE FROM locations WHERE id = %s", (location_id,))
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+    # Delete all contacts for this location first
+    contacts = query_collection("trusted_contacts", "location_id", "==", str(location_id))
+    for c in contacts:
+        delete_document("trusted_contacts", c["id"])
+
+    # Then delete the location itself
+    delete_document("locations", str(location_id))
 
     return jsonify({"message": "Location and contacts deleted"}), 200
 
@@ -1186,17 +1119,12 @@ def add_contact():
     if not location_id or not name:
         return jsonify({"error": "Missing fields"}), 400
 
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO trusted_contacts
-        (location_id, name, phone, email)
-        VALUES (%s, %s, %s, %s)
-    """, (location_id, name, phone, email))
-
-    conn.commit()
-    conn.close()
+    add_document("trusted_contacts", {
+        "location_id": location_id,
+        "name": name,
+        "phone": phone,
+        "email": email,
+    })
 
     return jsonify({"message": "Contact added"}), 201
 
@@ -1212,9 +1140,6 @@ def bulk_add_contacts():
     if not contacts:
         return jsonify({"error": "No contacts provided"}), 400
 
-    conn = get_db()
-    cur = conn.cursor()
-
     for contact in contacts:
         location_id = contact.get("location_id")
         name = contact.get("name")
@@ -1222,38 +1147,27 @@ def bulk_add_contacts():
         email = contact.get("email")
 
         if location_id and name:
-            cur.execute("""
-                INSERT INTO trusted_contacts
-                (location_id, name, phone, email)
-                VALUES (%s, %s, %s, %s)
-            """, (location_id, name, phone, email))
-
-    conn.commit()
-    conn.close()
+            add_document("trusted_contacts", {
+                "location_id": location_id,
+                "name": name,
+                "phone": phone,
+                "email": email,
+            })
 
     return jsonify({"message": f"{len(contacts)} contacts added"}), 201
 
 
 # GET CONTACTS FOR LOCATION
-@app.route("/api/contacts/<int:location_id>", methods=["GET"])
+@app.route("/api/contacts/<location_id>", methods=["GET"])
 def get_contacts(location_id):
 
-    conn = get_db()
-    cur = conn.cursor()
+    rows = query_collection("trusted_contacts", "location_id", "==", str(location_id))
 
-    cur.execute("""
-        SELECT * FROM trusted_contacts
-        WHERE location_id = %s
-    """, (location_id,))
-
-    rows = cur.fetchall()
-    conn.close()
-
-    return jsonify([dict(r) for r in rows])
+    return jsonify(rows)
 
 
 # UPDATE CONTACT
-@app.route("/api/contacts/<int:contact_id>", methods=["PUT"])
+@app.route("/api/contacts/<contact_id>", methods=["PUT"])
 def update_contact(contact_id):
 
     data = request.json or {}
@@ -1262,32 +1176,20 @@ def update_contact(contact_id):
     phone = data.get("phone")
     email = data.get("email")
 
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("""
-        UPDATE trusted_contacts
-        SET name=%s, phone=%s, email=%s
-        WHERE id=%s
-    """,(name,phone,email,contact_id))
-
-    conn.commit()
-    conn.close()
+    update_document("trusted_contacts", str(contact_id), {
+        "name": name,
+        "phone": phone,
+        "email": email,
+    })
 
     return jsonify({"message":"Contact updated"})
 
 
 # DELETE CONTACT
-@app.route("/api/contacts/<int:contact_id>", methods=["DELETE"])
+@app.route("/api/contacts/<contact_id>", methods=["DELETE"])
 def delete_contact(contact_id):
 
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("DELETE FROM trusted_contacts WHERE id=%s", (contact_id,))
-
-    conn.commit()
-    conn.close()
+    delete_document("trusted_contacts", str(contact_id))
 
     return jsonify({"message":"Contact deleted"})
 
@@ -1632,14 +1534,13 @@ def hospitals_nearby():
 # EMERGENCY / SOS (MVP LOGGING)
 # ============================
 def _log_sos(user_id, lat, lng, message):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO sos_alerts (user_id, lat, lng, message, timestamp)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (user_id, lat, lng, message, int(time.time())))
-    conn.commit()
-    conn.close()
+    add_document("sos_alerts", {
+        "user_id": user_id,
+        "lat": lat,
+        "lng": lng,
+        "message": message,
+        "timestamp": int(time.time()),
+    })
     _schedule_retrain("new SOS alert")
 
 
@@ -1734,11 +1635,7 @@ def safecam_login():
     if not user_id or not password:
         return jsonify({"error": "user_id and password required"}), 400
 
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE id = %s", (int(user_id),))
-    user = cur.fetchone()
-    conn.close()
+    user = get_document("users", str(user_id))
 
     if not user:
         return jsonify({"error": "User not found"}), 404
@@ -1758,14 +1655,15 @@ def safecam_upload():
     if not user_id or not image:
         return jsonify({"error": "user_id and image_base64 required"}), 400
 
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO evidence (user_id, image_base64, lat, lng, accuracy, type, timestamp)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (int(user_id), image, lat, lng, None, "NORMAL", int(time.time())))
-    conn.commit()
-    conn.close()
+    add_document("evidence", {
+        "user_id": int(user_id),
+        "image_base64": image,
+        "lat": lat,
+        "lng": lng,
+        "accuracy": None,
+        "type": "NORMAL",
+        "timestamp": int(time.time()),
+    })
     return jsonify({"message": "Saved"}), 201
 
 
@@ -1779,14 +1677,15 @@ def safecam_upload_frame():
     if not user_id or not image:
         return jsonify({"error": "user_id and image_base64 required"}), 400
 
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO evidence (user_id, image_base64, lat, lng, accuracy, type, timestamp)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (int(user_id), image, lat, lng, None, "SOS", int(time.time())))
-    conn.commit()
-    conn.close()
+    add_document("evidence", {
+        "user_id": int(user_id),
+        "image_base64": image,
+        "lat": lat,
+        "lng": lng,
+        "accuracy": None,
+        "type": "SOS",
+        "timestamp": int(time.time()),
+    })
     return jsonify({"message": "Saved"}), 201
 
 
@@ -1814,20 +1713,13 @@ def update_profile():
     if not user_id:
         return jsonify({"error": "user_id required"}), 400
 
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT name, phone, address FROM users WHERE id = %s", (user_id,))
-    row = cur.fetchone()
-    if not row:
-        conn.close()
+    user = get_document("users", str(user_id))
+    if not user:
         return jsonify({"error": "User not found"}), 404
-    n = name if name is not None else (row[0] or "")
-    p = phone if phone is not None else (row[1] or "")
-    a = address if address is not None else (row[2] or "")
-    cur.execute("UPDATE users SET name = %s, phone = %s, address = %s WHERE id = %s", (n, p, a, user_id))
-
-    conn.commit()
-    conn.close()
+    n = name if name is not None else (user.get("name") or "")
+    p = phone if phone is not None else (user.get("phone") or "")
+    a = address if address is not None else (user.get("address") or "")
+    update_document("users", str(user_id), {"name": n, "phone": p, "address": a})
 
     return jsonify({"message": "Profile updated"})
 
@@ -1855,17 +1747,15 @@ def create_report():
         import time
         timestamp = int(time.time())
 
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO reports
-        (user_id, location_label, lat, lng, description, image_base64, timestamp)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (user_id, location_label, lat, lng, description, image_base64, timestamp))
-
-    conn.commit()
-    conn.close()
+    add_document("reports", {
+        "user_id": user_id,
+        "location_label": location_label,
+        "lat": lat,
+        "lng": lng,
+        "description": description,
+        "image_base64": image_base64,
+        "timestamp": timestamp,
+    })
 
     # Feedback loop: retrain model so it learns from this incident
     _schedule_retrain("new report")

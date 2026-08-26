@@ -1,120 +1,103 @@
-import psycopg2
-import psycopg2.extras
 import os
+import json
+import time
+
+# ---------------------------------------------------------------------------
+# Firebase Admin SDK initialisation
+# ---------------------------------------------------------------------------
+# Reads credentials from the FIREBASE_CREDENTIALS environment variable
+# (the full JSON string of the service-account key).
+# ---------------------------------------------------------------------------
+
+_firestore_client = None
+
+
+def _init_firebase():
+    """Initialise the Firebase Admin SDK exactly once."""
+    global _firestore_client
+
+    import firebase_admin
+    from firebase_admin import credentials, firestore
+
+    if _firestore_client is not None:
+        return
+
+    creds_json = os.environ.get("FIREBASE_CREDENTIALS")
+    if not creds_json:
+        raise ValueError(
+            "FIREBASE_CREDENTIALS environment variable is required. "
+            "Paste the full JSON of your Firebase service-account key."
+        )
+
+    creds_dict = json.loads(creds_json)
+    cred = credentials.Certificate(creds_dict)
+
+    # Avoid double-init if the default app already exists
+    try:
+        firebase_admin.get_app()
+    except ValueError:
+        firebase_admin.initialize_app(cred)
+
+    _firestore_client = firestore.client()
+
 
 def get_db():
-    db_url = os.environ.get("DATABASE_URL")
-    if not db_url:
-        raise ValueError("DATABASE_URL environment variable is required")
-        
-    conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.DictCursor)
-    conn.autocommit = True
-    return conn
+    """Return the Firestore client, initialising on first call."""
+    if _firestore_client is None:
+        _init_firebase()
+    return _firestore_client
+
 
 def init_db():
-    conn = get_db()
-    cur = conn.cursor()
+    """Ensure Firebase is initialised.
 
-    # =========================
-    # USERS
-    # =========================
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            name TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            phone TEXT,
-            address TEXT,
-            password_hash TEXT NOT NULL
-        )
-    """)
-    
-    # Add address column if it doesn't exist (for existing databases)
-    try:
-        cur.execute("ALTER TABLE users ADD COLUMN address TEXT")
-    except Exception:
-        pass  # Column already exists
+    Firestore is schemaless so there are no tables to create — this just
+    makes sure the SDK is ready.
+    """
+    _init_firebase()
 
-    # =========================
-    # EVIDENCE (NORMAL + SOS)
-    # =========================
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS evidence (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            image_base64 TEXT NOT NULL,
-            lat REAL,
-            lng REAL,
-            accuracy REAL,
-            type TEXT NOT NULL,
-            timestamp INTEGER NOT NULL,
 
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        )
-    """)
+# ---------------------------------------------------------------------------
+# Tiny helpers that keep index.py readable
+# ---------------------------------------------------------------------------
 
-    # =========================
-    # SAVED LOCATIONS (Home, Hostel, College, etc.)
-    # =========================
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS locations (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            label TEXT NOT NULL,
-            lat REAL,
-            lng REAL,
+def add_document(collection: str, data: dict) -> str:
+    """Add a document and return its auto-generated ID."""
+    db = get_db()
+    _, doc_ref = db.collection(collection).add(data)
+    return doc_ref.id
 
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        )
-    """)
 
-    # =========================
-    # TRUSTED CONTACTS PER LOCATION
-    # =========================
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS trusted_contacts (
-            id SERIAL PRIMARY KEY,
-            location_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            phone TEXT,
-            email TEXT,
+def get_document(collection: str, doc_id: str):
+    """Fetch a single document by ID.  Returns dict | None."""
+    db = get_db()
+    doc = db.collection(collection).document(doc_id).get()
+    if doc.exists:
+        d = doc.to_dict()
+        d["id"] = doc.id
+        return d
+    return None
 
-            FOREIGN KEY(location_id) REFERENCES locations(id)
-        )
-    """)
 
-    # =========================
-    # SOS ALERT LOGS
-    # =========================
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS sos_alerts (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            lat REAL,
-            lng REAL,
-            message TEXT,
-            timestamp INTEGER NOT NULL,
+def query_collection(collection: str, field: str, op: str, value):
+    """Return list[dict] for a simple single-field query."""
+    db = get_db()
+    docs = db.collection(collection).where(field, op, value).stream()
+    results = []
+    for doc in docs:
+        d = doc.to_dict()
+        d["id"] = doc.id
+        results.append(d)
+    return results
 
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        )
-    """)
 
-    # =========================
-    # REPORTS (User Reports)
-    # =========================
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS reports (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            location_label TEXT,
-            lat REAL,
-            lng REAL,
-            description TEXT NOT NULL,
-            image_base64 TEXT,
-            timestamp INTEGER NOT NULL,
+def update_document(collection: str, doc_id: str, data: dict):
+    """Merge-update fields on an existing document."""
+    db = get_db()
+    db.collection(collection).document(doc_id).update(data)
 
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        )
-    """)
 
-    conn.close()
+def delete_document(collection: str, doc_id: str):
+    """Delete a document by ID."""
+    db = get_db()
+    db.collection(collection).document(doc_id).delete()

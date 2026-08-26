@@ -3,5 +3,5 @@ flask-cors
 werkzeug
 gunicorn
 joblib
-psycopg2-binary
+firebase-admin
 python-dotenv
