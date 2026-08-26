@@ -10,32 +10,33 @@
     },
     {
       "src": "api/index.py",
-      "use": "@vercel/python",
-      "config": {
-        "includeFiles": "{safety_route/backend/safety_model.pkl,safety_route/data1/ProTego.csv,safety_route/data1/bangalore_hospitals.csv,data/ProTego.csv,data/bangalore_hospitals.csv,FriendsNavigator/**}"
-      }
+      "use": "@vercel/python"
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.py"
+      "src": "/api/(.*)",
+      "dest": "/api/index.py"
     },
     {
-      "source": "/safecam(.*)",
-      "destination": "/api/index.py"
+      "src": "/safecam(.*)",
+      "dest": "/api/index.py"
     },
     {
-      "source": "/data(.*)",
-      "destination": "/api/index.py"
+      "src": "/data(.*)",
+      "dest": "/api/index.py"
     },
     {
-      "source": "/friendsnavigator(.*)",
-      "destination": "/api/index.py"
+      "src": "/friendsnavigator(.*)",
+      "dest": "/api/index.py"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
