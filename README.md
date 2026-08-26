@@ -140,7 +140,6 @@ meter, the route legend and the grid overlay — and colour never carries a
 reading alone, so every score is also shown as a number and a text band.
 
 ## Ports
-
 Both Flask apps (`backend/app.py` and `safety_route/backend/app.py`) default to
 5001, so only one can run at a time. Set `PORT` to run them side by side.
 
