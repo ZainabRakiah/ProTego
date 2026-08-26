@@ -11,6 +11,6 @@
     "postinstall": "npm --prefix web install"
   },
   "engines": {
-    "node": ">=18"
+    "node": "20.x"
   }
 }
