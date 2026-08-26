@@ -22,5 +22,5 @@ export default defineConfig({
       "/friendsnavigator": { target: BACKEND, changeOrigin: true },
     },
   },
-  build: { outDir: "dist", sourcemap: false },
+  build: { outDir: "dist", sourcemap: false, chunkSizeWarningLimit: 1000 },
 });

@@ -10,7 +10,10 @@
     },
     {
       "src": "backend/app.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "excludeFiles": ["web/node_modules/**", "node_modules/**", "**/*venv/**", "**/*.venv/**"]
+      }
     }
   ],
   "rewrites": [
