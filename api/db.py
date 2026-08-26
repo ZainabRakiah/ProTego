@@ -133,7 +133,10 @@ def get_db():
 
 def init_db():
     """Ensure credentials can authenticate."""
-    _get_auth()
+    try:
+        _get_auth()
+    except Exception as e:
+        print(f"[firebase-warning] Deferred Firestore auth init: {e}")
 
 
 # ---------------------------------------------------------------------------

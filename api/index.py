@@ -28,23 +28,28 @@ for _stream in (sys.stdout, sys.stderr):
         except Exception:
             pass
 
-app = Flask(__name__)
+# Ensure current directory is on sys.path so sibling modules like db.py import properly
+API_DIR = os.path.dirname(os.path.abspath(__file__))
+if API_DIR not in sys.path:
+    sys.path.insert(0, API_DIR)
 
-@app.route("/")
-def home():
-    return "ProTego deployed successfully!"
-
-from db import get_db, init_db, add_document, get_document, query_collection, update_document, delete_document
+try:
+    from db import get_db, init_db, add_document, get_document, query_collection, update_document, delete_document
+except ImportError:
+    from api.db import get_db, init_db, add_document, get_document, query_collection, update_document, delete_document
 
 # Get the project root directory (parent of backend)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(API_DIR)
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 app = Flask(__name__, static_folder=None)
 CORS(app)
 
 # Initialize database
-init_db()
+try:
+    init_db()
+except Exception as e:
+    print(f"[app-init] Firestore init deferred: {e}")
 
 # ============================
 # SAFETY MODEL (ML + RULE-BASED)
