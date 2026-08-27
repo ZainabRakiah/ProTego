@@ -1,5 +1,6 @@
 # ProTego
 
+____
 Night safety companion — safest-route navigation, one-tap SOS, a trusted circle
 and a timestamped evidence vault.
 
