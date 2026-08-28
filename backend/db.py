@@ -5,7 +5,13 @@ import os
 # regardless of where the server is started from.
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
-DB_NAME = os.path.join(PROJECT_ROOT, "database.db")
+
+# Hosts give you one writable directory that survives a redeploy (a mounted
+# disk); everything else is wiped. DATA_DIR points at it in production and
+# falls back to the project root for local development.
+DATA_DIR = os.environ.get("DATA_DIR") or PROJECT_ROOT
+os.makedirs(DATA_DIR, exist_ok=True)
+DB_NAME = os.path.join(DATA_DIR, "database.db")
 
 
 def get_db():
@@ -121,6 +127,36 @@ def init_db():
 
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
+    """)
+
+    # =========================
+    # SOS NOTIFICATIONS (who was alerted, in what order)
+    # =========================
+    # One row per contact per SOS. The wave column is what makes the ordering
+    # auditable after the fact: wave 1 is everyone inside the alert radius —
+    # the people who can physically reach the user — and later waves are the
+    # fallback ring that fires a few seconds behind them.
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS sos_notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sos_id INTEGER NOT NULL,
+            contact_id INTEGER,
+            contact_name TEXT,
+            contact_phone TEXT,
+            contact_email TEXT,
+            location_label TEXT,
+            distance_km REAL,
+            wave INTEGER NOT NULL,
+            channel TEXT,
+            status TEXT NOT NULL,        -- queued / sent / failed
+            timestamp INTEGER NOT NULL,
+
+            FOREIGN KEY(sos_id) REFERENCES sos_alerts(id)
+        )
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_sos_notifications_sos
+        ON sos_notifications (sos_id)
     """)
 
     # =========================

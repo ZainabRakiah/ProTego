@@ -29,6 +29,25 @@ const TILE_HOSTS = [
 /** API paths that are useful offline and safe to serve stale. */
 const CACHEABLE_API = ["/api/offline/safety-pack", "/api/hospitals-nearby", "/api/safety-point"];
 
+/*
+ * Where the API actually lives. A service worker cannot read import.meta.env,
+ * so the registration passes the deployed API origin as ?api=... on the script
+ * URL. With nothing passed — local dev, where Vite proxies /api — the API is
+ * simply same-origin.
+ */
+const API_ORIGIN = (() => {
+  try {
+    const declared = new URL(self.location.href).searchParams.get("api");
+    return declared ? new URL(declared).origin : self.location.origin;
+  } catch {
+    return self.location.origin;
+  }
+})();
+
+function isApiRequest(url) {
+  return url.origin === API_ORIGIN && url.pathname.startsWith("/api/");
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
@@ -108,16 +127,21 @@ self.addEventListener("fetch", (event) => {
   // Place search is useless without a network and must not be cached stale.
   if (url.hostname.endsWith("nominatim.openstreetmap.org")) return;
 
-  if (url.origin !== self.location.origin) return;
+  /*
+   * API requests are matched on the API origin, not just the pathname. In
+   * production the static site and the Flask API sit on different hosts, so a
+   * plain same-origin check would skip caching the safety pack entirely — the
+   * one thing that has to survive going offline. Matching on pathname alone
+   * would be worse though: any third-party host serving /api/offline/... would
+   * be cached and then trusted as the safety map.
+   */
+  if (isApiRequest(url)) {
+    // --- safety pack: the offline map itself -------------------------------
+    if (url.pathname === "/api/offline/safety-pack") {
+      event.respondWith(cacheFirst(request, PACK_CACHE));
+      return;
+    }
 
-  // --- safety pack: the offline map itself ---------------------------------
-  if (url.pathname === "/api/offline/safety-pack") {
-    event.respondWith(cacheFirst(request, PACK_CACHE));
-    return;
-  }
-
-  // --- other API -----------------------------------------------------------
-  if (url.pathname.startsWith("/api/")) {
     if (CACHEABLE_API.some((path) => url.pathname.startsWith(path))) {
       event.respondWith(networkFirst(request, API_CACHE));
     }
@@ -125,6 +149,9 @@ self.addEventListener("fetch", (event) => {
     // be worse than an honest failure the UI can report.
     return;
   }
+
+  // Anything else cross-origin is none of our business.
+  if (url.origin !== self.location.origin) return;
 
   // --- app shell -----------------------------------------------------------
   if (request.mode === "navigate") {

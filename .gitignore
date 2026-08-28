@@ -34,5 +34,15 @@ __pycache__/
 *.pyc
 node_modules/
 .env
-.DS_Storedatabase*.db
+.DS_Store
+database*.db
 database.backup*.db
+
+# Runtime state — never committed
+database*.db
+database*.db-wal
+database*.db-shm
+backend/offline_pack.json
+
+# Vercel
+.vercel

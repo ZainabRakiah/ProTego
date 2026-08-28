@@ -96,8 +96,12 @@ export const api = {
   hospitalsNearby: (lat, lng) => request(`/api/hospitals-nearby?lat=${lat}&lng=${lng}`),
 
   // --- emergency ---
-  sosSafety: (user_id, lat, lng) =>
-    request("/api/emergency/sos-safety", { method: "POST", body: { user_id, lat, lng } }),
+  sosSafety: (user_id, lat, lng, radius_km) =>
+    request("/api/emergency/sos-safety", {
+      method: "POST",
+      body: { user_id, lat, lng, ...(radius_km ? { radius_km } : {}) },
+    }),
+  sosNotifications: (sosId) => request(`/api/emergency/sos/${sosId}/notifications`),
   sosAccident: (user_id, lat, lng) =>
     request("/api/emergency/sos-accident", { method: "POST", body: { user_id, lat, lng } }),
   accidentThirdParty: (lat, lng, label) =>

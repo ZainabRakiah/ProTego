@@ -19,7 +19,6 @@ import {
   Layers,
   CornerUpRight,
   Route as RouteIcon,
-  Compass,
   Play,
   Footprints,
   Car,
@@ -32,7 +31,6 @@ import { Separator } from "@/components/ui/misc";
 import { RoutePlanner, initialWaypoints } from "@/components/RoutePlanner";
 import { SosButton } from "@/components/SosButton";
 import { LayerSwitcher } from "@/components/LayerSwitcher";
-import { AreaPanel } from "@/components/AreaPanel";
 import { ManeuverIcon } from "@/components/ManeuverIcon";
 import { NavigationView } from "@/components/NavigationView";
 import { routeBands } from "@/lib/navigation";
@@ -309,9 +307,6 @@ export default function MapPage() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Safe route</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            We score several candidate paths and draw the safest one.
-          </p>
         </div>
         <Button variant="outline" onClick={share} className="shrink-0">
           <Share2 className="size-4" />
@@ -324,7 +319,6 @@ export default function MapPage() {
       <div className="flex gap-1 rounded-lg border border-border/70 bg-muted/40 p-1 lg:hidden">
         {[
           { id: "route", label: "Route", icon: RouteIcon },
-          { id: "area", label: "Area", icon: Compass },
           { id: "sos", label: "SOS", icon: ShieldCheck },
         ].map(({ id, label, icon: Icon }) => (
           <button
@@ -550,14 +544,10 @@ export default function MapPage() {
             ) : null}
           </div>
 
-          <div className={cn(panel === "area" ? "block" : "hidden", "lg:block")}>
-            <AreaPanel position={placedStops.at(-1) ?? position ?? FALLBACK_POSITION} />
-          </div>
-
           <div className={cn(panel === "sos" ? "block" : "hidden", "lg:block")}>
             <Card>
               <CardContent className="flex flex-col items-center py-6">
-                <SosButton position={position ?? FALLBACK_POSITION} kind="safety" size={116} />
+                <SosButton size={116} />
               </CardContent>
             </Card>
           </div>

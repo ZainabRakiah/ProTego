@@ -1,0 +1,29 @@
+# Render blueprint for the ProTego API.
+#
+# The frontend deploys to Vercel; this is the half that needs a real server:
+# ~300MB of scientific dependencies, a writable SQLite file, and a background
+# retrain thread — none of which fit a serverless function.
+services:
+  - type: web
+    name: protego-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # One worker on purpose: the safety model is held in memory per process, so
+    # each extra worker would train and keep its own copy.
+    startCommand: gunicorn app:app --chdir backend --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.3"
+      # Must match the disk mountPath below, or SQLite and the generated
+      # offline pack land in the app directory and are wiped on every deploy.
+      - key: DATA_DIR
+        value: /var/data
+      - key: ALLOWED_ORIGINS
+        # Replace with your Vercel URL once the frontend is deployed.
+        value: https://protego.vercel.app
+    disk:
+      name: protego-data
+      mountPath: /var/data
+      sizeGB: 1

@@ -12,7 +12,9 @@ import * as React from "react";
  * Stored in Cache Storage rather than localStorage: it survives reloads, has
  * no 5MB string limit, and the service worker can serve the same entry.
  */
-const PACK_URL = "/api/offline/safety-pack";
+// Same base as the rest of the API: in production the backend lives on a
+// different host to the static site, so a bare path would hit Vercel.
+const PACK_URL = `${import.meta.env.VITE_API_BASE || ""}/api/offline/safety-pack`;
 const CACHE_NAME = "protego-safety-pack-v1";
 
 let pack = null; // decoded, in memory

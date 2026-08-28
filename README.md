@@ -29,6 +29,69 @@ npm run build          # bundles the UI into web/dist
 python backend/app.py  # Flask then serves the built app at :5001
 ```
 
+## Deploying
+
+The frontend goes to Vercel. **The Flask API cannot** — three hard blockers:
+
+| Blocker | Detail |
+| --- | --- |
+| Dependency size | scipy + pandas + sklearn + numpy is **~300 MB**; Vercel's serverless limit is 250 MB |
+| Writable storage | SQLite needs a disk that persists. Vercel functions are ephemeral, so every account, report and SOS would vanish between requests |
+| Background work | The safety model retrains on a thread. Serverless functions have no long-running processes |
+
+So: **static site on Vercel, API on a host with a real disk.** Render, Railway
+and Fly.io all have free tiers that handle this fine. `render.yaml` in the repo
+is a ready blueprint.
+
+### 1. The API
+
+Deploy the repo to Render (it reads `render.yaml`), or any host running:
+
+```bash
+gunicorn app:app --chdir backend --bind 0.0.0.0:$PORT --workers 1 --threads 4
+```
+
+Two environment variables matter:
+
+- `DATA_DIR` — a writable directory that survives redeploys (Render: `/var/data`).
+  The SQLite file and the generated offline pack both live here. Without it they
+  land in the app directory and are wiped on every deploy.
+- `ALLOWED_ORIGINS` — your Vercel URL, comma-separated for several. Defaults to
+  `*`, which is fine locally and wrong in production.
+
+Keep it to **one worker**. The safety model is held in memory per process, so
+extra workers each train their own copy.
+
+### 2. The frontend
+
+Point Vercel at the **`web`** directory (Settings → Root Directory → `web`).
+`web/vercel.json` supplies the rest: SPA rewrites, immutable caching for hashed
+assets, and `Cache-Control: max-age=0` on `sw.js` so a new service worker is
+picked up rather than served from cache for a year.
+
+Set one environment variable:
+
+```
+VITE_API_BASE = https://your-api-host.onrender.com
+```
+
+It is compiled into the bundle at build time, so **changing it needs a redeploy**,
+not just a restart.
+
+### What deployment unlocks
+
+HTTPS is what makes the app work on a phone at all. Browsers block both
+geolocation and service workers on plain `http://<lan-ip>`, which is why the
+offline features cannot be tested over a local network — a Vercel URL fixes
+that for free.
+
+### Free-tier caveat
+
+Render's free plan sleeps after inactivity, and this app trains its model on
+startup — so the first request after a sleep takes noticeably longer. The
+offline safety pack cushions this: once downloaded, safety scores come from the
+device and do not wait on the API at all.
+
 ## What's where
 
 ```

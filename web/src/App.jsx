@@ -2,6 +2,8 @@ import * as React from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AppShell } from "@/components/AppShell";
+import { PanicOverlay } from "@/components/PanicOverlay";
+import { GuardianProvider } from "@/lib/guardian";
 import { useAuth, AuthProvider } from "@/lib/auth";
 // gsap and the WebGL shader are only used by the sign-in screen, so they load
 // with it rather than weighing down every other page.
@@ -58,7 +60,15 @@ function Routing() {
       <Route
         element={
           <RequireAuth>
-            <AppShell />
+            {/*
+              The guardian layer wraps every signed-in screen, not each page:
+              a shake has to reach it wherever the user is, and a running
+              evidence burst must survive navigation.
+            */}
+            <GuardianProvider>
+              <AppShell />
+              <PanicOverlay />
+            </GuardianProvider>
           </RequireAuth>
         }
       >

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CameraCapture } from "@/components/CameraCapture";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -77,17 +77,11 @@ export default function Report() {
     <div className="animate-rise mx-auto max-w-2xl space-y-5">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Report an incident</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Every report feeds the model that scores this area for everyone else.
-        </p>
       </header>
 
       <Card>
         <CardHeader>
           <CardTitle>What happened?</CardTitle>
-          <CardDescription>
-            Reports are tied to your account and the coordinates below.
-          </CardDescription>
         </CardHeader>
 
         <CardContent>

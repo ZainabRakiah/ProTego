@@ -1,27 +1,38 @@
 import * as React from "react";
-import { Camera, Trash2, ShieldAlert, Loader2, Image as ImageIcon, Download } from "lucide-react";
+import {
+  Camera,
+  Trash2,
+  ShieldAlert,
+  Image as ImageIcon,
+  Download,
+  Square,
+  Flashlight,
+  FlashlightOff,
+  Moon,
+  CloudUpload,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState, Skeleton } from "@/components/ui/misc";
-import { CameraCapture } from "@/components/CameraCapture";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { FALLBACK_POSITION, useGeolocation } from "@/lib/geo";
-import { formatTime } from "@/lib/utils";
+import { useGuardian, CAPTURE_INTERVAL_MS } from "@/lib/guardian";
+import { cn, formatTime } from "@/lib/utils";
+
+const EVERY_S = Math.round(CAPTURE_INTERVAL_MS / 1000);
 
 export default function Evidence() {
   const { user } = useAuth();
-  const { position, accuracy } = useGeolocation({ watch: false });
+  const { burst, panic, streamId, startBurst, stopBurst, setTorch, attachPreview } =
+    useGuardian();
 
   const [items, setItems] = React.useState(null);
   const [error, setError] = React.useState(null);
-  const [cameraOpen, setCameraOpen] = React.useState(false);
-  const [pendingType, setPendingType] = React.useState("NORMAL");
-  const [saving, setSaving] = React.useState(false);
   const [preview, setPreview] = React.useState(null);
+  const videoRef = React.useRef(null);
 
   const load = React.useCallback(async () => {
     if (!user?.id) return;
@@ -38,34 +49,18 @@ export default function Evidence() {
     load();
   }, [load]);
 
-  function startCapture(type) {
-    setPendingType(type);
-    setCameraOpen(true);
-  }
+  // Point the preview at the shared stream once it is actually open.
+  React.useEffect(() => {
+    if (burst.active) attachPreview(videoRef.current);
+  }, [burst.active, streamId, attachPreview]);
 
-  async function onCapture(dataUrl) {
-    const p = position ?? FALLBACK_POSITION;
-    setSaving(true);
-    try {
-      await api.saveEvidence({
-        user_id: user?.id,
-        image_base64: dataUrl,
-        lat: p.lat,
-        lng: p.lng,
-        accuracy: accuracy ?? null,
-        type: pendingType,
-        timestamp: Math.floor(Date.now() / 1000),
-      });
-      toast.success(
-        pendingType === "SOS" ? "SOS evidence saved" : "Evidence saved to your vault",
-      );
-      load();
-    } catch (err) {
-      toast.error("Could not save evidence", { description: err.message });
-    } finally {
-      setSaving(false);
-    }
-  }
+  // Refresh the grid when capture ends. Not per frame: every item carries its
+  // full base64 image, so re-fetching the vault every 5s would be brutal.
+  const wasActive = React.useRef(false);
+  React.useEffect(() => {
+    if (wasActive.current && !burst.active) load();
+    wasActive.current = burst.active;
+  }, [burst.active, load]);
 
   async function remove(id) {
     if (!confirm("Delete this evidence permanently?")) return;
@@ -78,37 +73,94 @@ export default function Evidence() {
     }
   }
 
+  function stop() {
+    stopBurst();
+    toast.success(`Capture stopped · ${burst.saved} photo${burst.saved === 1 ? "" : "s"} saved`);
+  }
+
   return (
     <div className="animate-rise space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Evidence vault</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Photos stamped with the time, your coordinates and GPS accuracy.
-          </p>
-        </div>
-        <div className="flex w-full gap-2 sm:w-auto">
-          <Button
-            variant="outline"
-            className="flex-1 sm:flex-none"
-            onClick={() => startCapture("NORMAL")}
-            disabled={saving}
-          >
-            {saving ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
-            Capture
-          </Button>
-          <Button
-            variant="destructive"
-            className="flex-1 sm:flex-none"
-            onClick={() => startCapture("SOS")}
-            disabled={saving}
-          >
-            <ShieldAlert className="size-4" />
-            SOS capture
-          </Button>
-        </div>
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Evidence vault</h1>
       </header>
 
+      {/* ---- Recorder ---- */}
+      <Card className="overflow-hidden p-0">
+        <div className="relative aspect-video w-full bg-black sm:aspect-[21/9]">
+          {burst.active ? (
+            <>
+              <video
+                ref={videoRef}
+                playsInline
+                muted
+                autoPlay
+                className="size-full object-cover"
+              />
+              <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-black/65 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+                <span className="size-2 animate-pulse rounded-full bg-destructive" />
+                Recording · every {EVERY_S}s
+              </div>
+              <div className="absolute right-3 bottom-3 flex flex-wrap justify-end gap-1.5">
+                <Chip icon={Camera} label={`${burst.saved} saved`} />
+                {burst.pending ? <Chip icon={CloudUpload} label={`${burst.pending}↑`} /> : null}
+                {burst.night ? <Chip icon={Moon} label="Night mode" /> : null}
+              </div>
+            </>
+          ) : (
+            <div className="flex size-full flex-col items-center justify-center gap-3 px-6 text-center">
+              <Camera className="size-8 text-white/35" />
+              {burst.error ? (
+                <p className="max-w-sm text-sm text-white/60">{burst.error}</p>
+              ) : null}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 border-t border-border/70 p-3 sm:p-4">
+          {burst.active ? (
+            <>
+              <Button variant="destructive" onClick={stop} className="flex-1 sm:flex-none">
+                <Square className="size-4" />
+                Stop capture
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setTorch(!burst.torch)}
+                disabled={!burst.torchSupported}
+                title={burst.torchSupported ? undefined : "This device exposes no flash control"}
+              >
+                {burst.torch ? (
+                  <Flashlight className="size-4" />
+                ) : (
+                  <FlashlightOff className="size-4" />
+                )}
+                Flash
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button onClick={() => startBurst("NORMAL")} className="flex-1 sm:flex-none">
+                <Camera className="size-4" />
+                Start capturing
+              </Button>
+              <Button variant="destructive" onClick={() => startBurst("SOS")}>
+                <ShieldAlert className="size-4" />
+                Capture as SOS
+              </Button>
+            </>
+          )}
+          {burst.failed ? (
+            <span className="tnum text-xs text-[var(--caution)]">
+              {burst.failed} held offline — they upload when the server is back
+            </span>
+          ) : null}
+          {panic.active ? (
+            <span className="text-xs text-destructive">Emergency mode is driving the camera</span>
+          ) : null}
+        </div>
+      </Card>
+
+      {/* ---- Vault ---- */}
       {items === null ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((i) => (
@@ -126,11 +178,11 @@ export default function Evidence() {
         <EmptyState
           icon={ImageIcon}
           title="Your vault is empty"
-          description="Capture a photo and ProTego stores it with a timestamp and your exact coordinates, so it holds up later."
+          description="Start capturing and every photo is stored with a timestamp and your exact coordinates, so it holds up later."
           action={
-            <Button onClick={() => startCapture("NORMAL")}>
+            <Button onClick={() => startBurst("NORMAL")}>
               <Camera className="size-4" />
-              Capture evidence
+              Start capturing
             </Button>
           }
         />
@@ -175,8 +227,6 @@ export default function Evidence() {
         </div>
       )}
 
-      <CameraCapture open={cameraOpen} onOpenChange={setCameraOpen} onCapture={onCapture} />
-
       <Dialog open={Boolean(preview)} onOpenChange={(v) => !v && setPreview(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -204,5 +254,19 @@ export default function Evidence() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function Chip({ icon: Icon, label }) {
+  return (
+    <span
+      className={cn(
+        "tnum inline-flex items-center gap-1.5 rounded-full bg-black/65 px-2.5 py-1",
+        "text-[11px] font-medium text-white backdrop-blur-sm",
+      )}
+    >
+      <Icon className="size-3.5" />
+      {label}
+    </span>
   );
 }

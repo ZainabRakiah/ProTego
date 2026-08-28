@@ -25,8 +25,13 @@ createRoot(document.getElementById("root")).render(
  */
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
+    // The worker cannot read import.meta.env, and in production the API is on
+    // a different host to the static site — so the API origin is handed over on
+    // the script URL. It decides what counts as an API request from this.
+    const apiBase = import.meta.env.VITE_API_BASE || "";
+    const swUrl = apiBase ? `/sw.js?api=${encodeURIComponent(apiBase)}` : "/sw.js";
     navigator.serviceWorker
-      .register("/sw.js")
+      .register(swUrl)
       .catch((err) => console.warn("[ProTego] service worker registration failed:", err));
   });
 }

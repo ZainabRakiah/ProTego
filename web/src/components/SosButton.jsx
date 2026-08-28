@@ -1,9 +1,7 @@
 import * as React from "react";
 import { ShieldAlert, Loader2, Check } from "lucide-react";
-import { toast } from "sonner";
-import { api } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
-import { cn, formatDistance } from "@/lib/utils";
+import { useGuardian } from "@/lib/guardian";
+import { cn } from "@/lib/utils";
 
 const HOLD_MS = 1500;
 
@@ -13,11 +11,14 @@ const HOLD_MS = 1500;
  * A single tap cannot fire an alert: the user must hold for 1.5s, which is the
  * standard guard against pocket-triggered emergency calls. Releasing early
  * cancels and resets the ring.
+ *
+ * Firing hands off to the guardian layer, so the button and a vigorous shake do
+ * exactly the same thing — alert, flash, and rolling evidence capture.
  */
-export function SosButton({ position, kind = "safety", className, size = 132 }) {
-  const { user } = useAuth();
+export function SosButton({ className, size = 132 }) {
+  const { trigger, panic } = useGuardian();
   const [progress, setProgress] = React.useState(0);
-  const [status, setStatus] = React.useState("idle"); // idle | sending | sent
+  const [sending, setSending] = React.useState(false);
   const frame = React.useRef(null);
   const startedAt = React.useRef(0);
 
@@ -31,45 +32,16 @@ export function SosButton({ position, kind = "safety", className, size = 132 }) 
 
   async function fire() {
     cancel();
-    if (!position) {
-      toast.error("No location yet", {
-        description: "ProTego needs your location before it can send an alert.",
-      });
-      return;
-    }
-    setStatus("sending");
+    setSending(true);
     try {
-      const userId = user?.id ?? 0;
-      const res =
-        kind === "accident"
-          ? await api.sosAccident(userId, position.lat, position.lng)
-          : await api.sosSafety(userId, position.lat, position.lng);
-
-      setStatus("sent");
-      const nearest = res?.nearest_police_km;
-      const hospitals = res?.hospitals;
-      toast.success("SOS sent", {
-        description:
-          kind === "accident"
-            ? `Logged with your location. Nearest hospital: ${
-                hospitals?.[0]?.name ?? "unknown"
-              }.`
-            : `Logged with your location.${
-                nearest !== undefined && nearest !== null
-                  ? ` Nearest police: ${formatDistance(nearest)}.`
-                  : ""
-              }`,
-        duration: 8000,
-      });
-      setTimeout(() => setStatus("idle"), 4000);
-    } catch (err) {
-      setStatus("idle");
-      toast.error("Could not send SOS", { description: err.message });
+      await trigger("manual");
+    } finally {
+      setSending(false);
     }
   }
 
   function beginHold() {
-    if (status !== "idle") return;
+    if (sending || panic.active) return;
     startedAt.current = performance.now();
     const tick = () => {
       const elapsed = performance.now() - startedAt.current;
@@ -87,14 +59,13 @@ export function SosButton({ position, kind = "safety", className, size = 132 }) 
   const stroke = 5;
   const r = (size - stroke) / 2 - 2;
   const c = 2 * Math.PI * r;
-
-  const busy = status !== "idle";
+  const busy = sending || panic.active;
 
   return (
     <div className={cn("flex flex-col items-center gap-3", className)}>
       <div className="relative grid place-items-center" style={{ width: size, height: size }}>
         {/* Idle halo — stops once a hold begins so the ring reads as progress. */}
-        {status === "idle" && progress === 0 ? (
+        {!busy && progress === 0 ? (
           <span
             aria-hidden
             className="animate-pulse-ring absolute inset-2 rounded-full bg-destructive/30"
@@ -142,7 +113,7 @@ export function SosButton({ position, kind = "safety", className, size = 132 }) 
             }
           }}
           onKeyUp={cancel}
-          aria-label={`Hold to send ${kind === "accident" ? "accident" : "safety"} SOS`}
+          aria-label="Hold to send an SOS"
           className={cn(
             "relative grid select-none place-items-center rounded-full text-destructive-foreground",
             "bg-gradient-to-b from-[oklch(0.7_0.22_25)] to-[oklch(0.55_0.22_25)]",
@@ -153,9 +124,9 @@ export function SosButton({ position, kind = "safety", className, size = 132 }) 
           )}
           style={{ width: size - 26, height: size - 26 }}
         >
-          {status === "sending" ? (
+          {sending ? (
             <Loader2 className="size-8 animate-spin" />
-          ) : status === "sent" ? (
+          ) : panic.active ? (
             <Check className="size-9" />
           ) : (
             <span className="flex flex-col items-center gap-0.5">
@@ -167,10 +138,10 @@ export function SosButton({ position, kind = "safety", className, size = 132 }) 
       </div>
 
       <p className="text-center text-xs text-muted-foreground" aria-live="polite">
-        {status === "sending"
+        {sending
           ? "Sending alert…"
-          : status === "sent"
-            ? "Alert sent and logged"
+          : panic.active
+            ? "Emergency mode running"
             : progress > 0
               ? "Keep holding…"
               : "Press and hold for 1.5s"}

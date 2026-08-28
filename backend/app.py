@@ -39,7 +39,13 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 app = Flask(__name__, static_folder=None)
-CORS(app)
+
+# In production the browser loads the app from Vercel and calls this API on a
+# different host, so CORS has to name that origin explicitly. Set
+# ALLOWED_ORIGINS to a comma-separated list; the default "*" keeps local
+# development working but should not be what a deployed instance runs with.
+_ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "*").split(",") if o.strip()]
+CORS(app, origins=_ALLOWED_ORIGINS, supports_credentials=False)
 
 # Initialize database
 init_db()
@@ -424,6 +430,24 @@ def _periodic_retrain_worker():
         _train_safety_model()
 
 
+_retrain_thread_started = False
+
+
+def _start_periodic_retrain():
+    """Start the retrain loop once, however the app was launched.
+
+    This used to live in the `__main__` block, so under gunicorn — which
+    imports the module rather than running it — the periodic retrain never
+    started at all. Reports still trigger a retrain on their own, but the
+    scheduled one silently did nothing in production.
+    """
+    global _retrain_thread_started
+    if _retrain_thread_started:
+        return
+    _retrain_thread_started = True
+    threading.Thread(target=_periodic_retrain_worker, daemon=True).start()
+
+
 def _is_night_hour(hour):
     # Night/evening influence for lamps
     return hour >= 18 or hour < 6
@@ -586,7 +610,10 @@ def _safety_scores_batch(coords, hour=None):
 # point-density histogram with a disc kernel, which turns the whole job into a
 # few array operations.
 _OFFLINE_PACK_STEP = 0.001  # ~110m
-_OFFLINE_PACK_PATH = os.path.join(BASE_DIR, "backend", "offline_pack.json")
+# Written at runtime, so it belongs on the writable disk alongside the DB.
+_OFFLINE_PACK_PATH = os.path.join(
+    os.environ.get("DATA_DIR") or os.path.join(BASE_DIR, "backend"), "offline_pack.json"
+)
 _OFFLINE_PACK_CACHE = {"data": None, "stamp": 0.0}
 
 
@@ -1754,9 +1781,169 @@ def _log_sos(user_id, lat, lng, message):
         INSERT INTO sos_alerts (user_id, lat, lng, message, timestamp)
         VALUES (?, ?, ?, ?, ?)
     """, (user_id, lat, lng, message, int(time.time())))
+    sos_id = cur.lastrowid
     conn.commit()
     conn.close()
     _schedule_retrain("new SOS alert")
+    return sos_id
+
+
+# ============================
+# PROXIMITY ALERTING
+# ============================
+# Trusted contacts hang off saved places (Home, Hostel, College), and each place
+# has coordinates. So "who is closest to the user right now" is answerable
+# without asking contacts to share their live location: rank every contact by
+# how far their place sits from where the SOS fired.
+#
+# The people inside INNER_RADIUS_KM are the ones who can physically get there,
+# so they go out first and alone. Everyone else follows a few seconds later —
+# far enough behind that the nearest phone is the first to ring, close enough
+# that nobody is left out if the near contact does not pick up.
+DEFAULT_ALERT_RADIUS_KM = 30.0
+SECOND_WAVE_DELAY_S = 20.0
+
+
+def _rank_contacts_by_distance(user_id, lat, lng, radius_km):
+    """Every trusted contact of this user, nearest place first.
+
+    Contacts on a place with no coordinates cannot be ranked, so they sort last
+    with distance None rather than being dropped — an unplaceable contact is
+    still someone who should hear about an SOS.
+    """
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT c.id, c.name, c.phone, c.email,
+                   l.label AS location_label, l.lat AS loc_lat, l.lng AS loc_lng
+            FROM trusted_contacts c
+            JOIN locations l ON l.id = c.location_id
+            WHERE l.user_id = ?
+        """, (int(user_id),))
+        rows = [dict(r) for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+    ranked = []
+    for r in rows:
+        if r["loc_lat"] is None or r["loc_lng"] is None:
+            distance_km = None
+        else:
+            distance_km = _haversine_m(lat, lng, float(r["loc_lat"]), float(r["loc_lng"])) / 1000.0
+        ranked.append({
+            "contact_id": r["id"],
+            "name": r["name"],
+            "phone": r["phone"],
+            "email": r["email"],
+            "location_label": r["location_label"],
+            "distance_km": None if distance_km is None else round(distance_km, 2),
+        })
+
+    # None sorts last; everything else nearest first.
+    ranked.sort(key=lambda c: (c["distance_km"] is None, c["distance_km"] or 0.0))
+
+    for c in ranked:
+        d = c["distance_km"]
+        c["wave"] = 1 if (d is not None and d <= radius_km) else 2
+
+    # If nobody fell inside the radius — the user is far from every saved place,
+    # which is exactly the highway case — the single nearest contact is promoted
+    # into wave 1 so the alert still has a first responder rather than one flat
+    # delayed blast.
+    if ranked and not any(c["wave"] == 1 for c in ranked):
+        ranked[0]["wave"] = 1
+
+    return ranked
+
+
+def _dispatch_contact(contact):
+    """Hand one alert to a delivery channel.
+
+    The SMS/WhatsApp gateway plugs in here and nowhere else: ranking, waves and
+    logging above stay untouched when it does. Until then a contact is recorded
+    as queued, which is honest about what happened rather than claiming a text
+    was sent.
+    """
+    channel = "sms" if contact.get("phone") else ("email" if contact.get("email") else None)
+    if channel is None:
+        return "failed", None
+    return "queued", channel
+
+
+def _record_notifications(sos_id, contacts):
+    now = int(time.time())
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("BEGIN")
+        for c in contacts:
+            cur.execute("""
+                INSERT INTO sos_notifications
+                    (sos_id, contact_id, contact_name, contact_phone, contact_email,
+                     location_label, distance_km, wave, channel, status, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                sos_id, c["contact_id"], c["name"], c.get("phone"), c.get("email"),
+                c.get("location_label"), c.get("distance_km"), c["wave"],
+                c.get("channel"), c.get("status", "queued"), now,
+            ))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def _send_wave(sos_id, contacts):
+    """Dispatch one wave and log the outcome per contact."""
+    for c in contacts:
+        status, channel = _dispatch_contact(c)
+        c["status"] = status
+        c["channel"] = channel
+    try:
+        _record_notifications(sos_id, contacts)
+    except Exception as e:
+        # A logging failure must never swallow the alert itself.
+        print(f"[sos] could not record notifications: {e}")
+
+
+def _alert_trusted_contacts(sos_id, user_id, lat, lng, radius_km):
+    """Rank, dispatch and log. Returns the waves for the client to display.
+
+    Wave 1 goes out inside the request. Wave 2 is handed to a background timer
+    so the response — and therefore the user's own confirmation that help was
+    called — never waits on the stagger.
+    """
+    ranked = _rank_contacts_by_distance(user_id, lat, lng, radius_km)
+    if not ranked:
+        return []
+
+    first = [c for c in ranked if c["wave"] == 1]
+    rest = [c for c in ranked if c["wave"] == 2]
+
+    _send_wave(sos_id, first)
+
+    if rest:
+        threading.Timer(
+            SECOND_WAVE_DELAY_S, _send_wave, args=(sos_id, rest)
+        ).start()
+        for c in rest:
+            c["status"] = "scheduled"
+            c["channel"] = "sms" if c.get("phone") else ("email" if c.get("email") else None)
+
+    waves = []
+    for wave_no, members in ((1, first), (2, rest)):
+        if not members:
+            continue
+        waves.append({
+            "wave": wave_no,
+            "radius_km": radius_km if wave_no == 1 else None,
+            "delay_s": 0 if wave_no == 1 else SECOND_WAVE_DELAY_S,
+            "contacts": members,
+        })
+    return waves
 
 
 @app.route("/api/emergency/sos-safety", methods=["POST"])
@@ -1775,15 +1962,46 @@ def sos_safety():
     except Exception:
         return jsonify({"error": "Invalid values"}), 400
 
+    try:
+        radius_km = float(data.get("radius_km") or DEFAULT_ALERT_RADIUS_KM)
+    except Exception:
+        radius_km = DEFAULT_ALERT_RADIUS_KM
+
     meta = _rule_based_safety_score(lat, lng)
     msg = f"SAFETY SOS: user={user_id} at {lat},{lng} (score={round(meta['score'])}%)"
-    _log_sos(user_id, lat, lng, msg)
+    sos_id = _log_sos(user_id, lat, lng, msg)
+
+    waves = _alert_trusted_contacts(sos_id, user_id, lat, lng, radius_km)
+    notified = sum(len(w["contacts"]) for w in waves)
+    nearest = waves[0]["contacts"][0] if waves and waves[0]["contacts"] else None
 
     return jsonify({
-        "message": "SOS logged (MVP). Integrate SMS/WhatsApp next.",
+        "message": "SOS logged and trusted contacts alerted nearest-first.",
+        "sos_id": sos_id,
         "nearest_police_km": meta.get("nearest_police_km"),
         "score": meta.get("score"),
+        "radius_km": radius_km,
+        "notified_count": notified,
+        "nearest_contact": nearest,
+        "waves": waves,
     }), 200
+
+
+@app.route("/api/emergency/sos/<int:sos_id>/notifications", methods=["GET"])
+def sos_notifications(sos_id):
+    """Who was alerted for one SOS, in the order they were alerted."""
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT * FROM sos_notifications
+            WHERE sos_id = ?
+            ORDER BY wave, (distance_km IS NULL), distance_km
+        """, (sos_id,))
+        rows = [dict(r) for r in cur.fetchall()]
+    finally:
+        conn.close()
+    return jsonify(rows), 200
 
 
 @app.route("/api/emergency/sos-accident", methods=["POST"])
@@ -2049,6 +2267,11 @@ def serve_html(filename):
     return "File not found", 404
 
 
+# The retrain loop must start however the app was launched — `python app.py`
+# locally, or gunicorn importing this module in production.
+_start_periodic_retrain()
+
+
 # ============================
 # AUTO-OPEN BROWSER
 # ============================
@@ -2062,9 +2285,6 @@ def open_browser():
 # ============================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
-    # Periodic retrain thread (grid-based ML learns from new data every 6h)
-    retrain_thread = threading.Thread(target=_periodic_retrain_worker, daemon=True)
-    retrain_thread.start()
 
     # `npm run dev` starts this as an API server and opens Vite's URL instead,
     # so it sets NO_BROWSER=1 to keep a second tab from popping up.
