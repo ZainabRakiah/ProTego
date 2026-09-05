@@ -10,6 +10,7 @@ From the `ProTego` folder:
 ```bash
 npm run dev
 ```
+---
 
 That single command starts everything and opens the app:
 
