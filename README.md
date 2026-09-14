@@ -42,6 +42,20 @@ npm install
 npm run dev
 ```
 
+### Environment configuration
+
+Copy the environment template before using login, signup, reports, or other
+Firestore-backed features:
+
+```bash
+cp .env.example .env
+```
+
+Set `FIREBASE_CREDENTIALS` in `.env` to the complete Firebase service-account
+JSON. Keep that file local and never commit it. The app and health endpoint can
+start without credentials, but database-backed requests return HTTP 503 until
+this variable is configured.
+
 When it is running, the app serves:
 
 | Service  | URL                     | What it is                          |
@@ -50,6 +64,10 @@ When it is running, the app serves:
 | API      | http://127.0.0.1:5001   | Flask backend + safety ML           |
 
 Press `Ctrl+C` to stop both processes.
+
+The API can fall back to rule-based scoring when the optional XGBoost model
+dependency is unavailable; install the model dependencies separately when
+running the standalone training experiment under `safety_route/`.
 
 If you want to run just the backend manually:
 

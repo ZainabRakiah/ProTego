@@ -17,6 +17,10 @@ _auth_request = None
 _project_id = None
 
 
+class FirebaseConfigurationError(RuntimeError):
+    """Raised when Firestore credentials are required but not configured."""
+
+
 def _get_auth():
     """Initialise and refresh Google OAuth2 credentials from FIREBASE_CREDENTIALS."""
     global _creds, _auth_request, _project_id
@@ -24,7 +28,7 @@ def _get_auth():
     if _creds is None:
         creds_json = os.environ.get("FIREBASE_CREDENTIALS")
         if not creds_json:
-            raise ValueError(
+            raise FirebaseConfigurationError(
                 "FIREBASE_CREDENTIALS environment variable is required. "
                 "Paste the full JSON of your Firebase service-account key."
             )

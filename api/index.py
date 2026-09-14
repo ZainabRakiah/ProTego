@@ -34,9 +34,27 @@ if API_DIR not in sys.path:
     sys.path.insert(0, API_DIR)
 
 try:
-    from db import get_db, init_db, add_document, get_document, query_collection, update_document, delete_document
+    from db import (
+        FirebaseConfigurationError,
+        get_db,
+        init_db,
+        add_document,
+        get_document,
+        query_collection,
+        update_document,
+        delete_document,
+    )
 except ImportError:
-    from api.db import get_db, init_db, add_document, get_document, query_collection, update_document, delete_document
+    from api.db import (
+        FirebaseConfigurationError,
+        get_db,
+        init_db,
+        add_document,
+        get_document,
+        query_collection,
+        update_document,
+        delete_document,
+    )
 
 # Get the project root directory (parent of backend)
 BASE_DIR = os.path.dirname(API_DIR)
@@ -44,6 +62,13 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 app = Flask(__name__, static_folder=None)
 CORS(app)
+
+
+@app.errorhandler(FirebaseConfigurationError)
+def handle_firebase_configuration_error(error):
+    return jsonify({
+        "error": "Database is not configured. Set FIREBASE_CREDENTIALS in .env and restart the app."
+    }), 503
 
 # Initialize database
 try:
