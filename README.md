@@ -5,28 +5,71 @@ and a timestamped evidence vault.
 
 ## Run it
 
-From the `ProTego` folder:
+From the project root, the simplest way to run the full app is:
 
 ```bash
 npm run dev
 ```
 
-That single command starts everything and opens the app:
+This command automatically creates the Python virtual environment if needed,
+installs the Python packages from `requirements.txt`, installs the web frontend
+dependencies, and starts both the Flask API and the Vite frontend together.
+
+For a fresh clone, the full setup flow is:
+
+```bash
+# 1) create a Python environment
+python3 -m venv ProTego_venv
+source ProTego_venv/bin/activate
+
+# 2) install Python dependencies
+pip install -r requirements.txt
+
+# 3) install frontend dependencies
+npm install
+
+# 4) run the full project
+npm run dev
+```
+
+Windows PowerShell equivalent:
+
+```powershell
+python -m venv ProTego_venv
+.\ProTego_venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+npm install
+npm run dev
+```
+
+When it is running, the app serves:
 
 | Service  | URL                     | What it is                          |
 | -------- | ----------------------- | ----------------------------------- |
 | App      | http://localhost:5173   | React UI (opens automatically)      |
 | API      | http://127.0.0.1:5001   | Flask backend + safety ML           |
 
-On the first run it also creates `ProTego_venv`, installs `requirements.txt`,
-and installs `web/node_modules` — so a fresh clone needs nothing but Node 18+
-and Python 3. Press `Ctrl+C` to stop both processes.
+Press `Ctrl+C` to stop both processes.
+
+If you want to run just the backend manually:
+
+```bash
+source ProTego_venv/bin/activate
+python api/index.py
+```
+
+If you want to build the production bundle instead:
+
+```bash
+npm run build
+python api/index.py
+```
 
 ### Production build
 
 ```bash
 npm run build          # bundles the UI into web/dist
-python backend/app.py  # Flask then serves the built app at :5001
+python api/index.py   # Flask then serves the built app at :5001
 ```
 
 ## What's where
@@ -35,7 +78,7 @@ python backend/app.py  # Flask then serves the built app at :5001
 ProTego/
 ├─ package.json          # `npm run dev` entry point
 ├─ scripts/dev.mjs       # launcher: sets up the venv, starts Flask + Vite
-├─ backend/              # Flask API, safety ML, SQLite (app.py, db.py)
+├─ api/                  # Flask API, auth, routing, safety scoring (index.py, db.py)
 ├─ web/                  # the web app — Vite + React 19 + Tailwind v4 + shadcn/ui
 │  ├─ src/pages/         # Login, Signup, Dashboard, Map, Report, Contacts, Evidence, Profile
 │  ├─ src/components/    # AppShell, SosButton, SafetyMeter, CameraCapture, Aurora
@@ -61,8 +104,8 @@ ProTego/
 - **Safety overlay** — a live grid heat layer over the map for the current hour.
 - **Press-and-hold SOS** — 1.5s hold guards against pocket triggers; logs your
   coordinates with the nearest police station or hospitals attached.
-- **Incident reports** — every report retrains the safety model, so the area is
-  rescored for everyone.
+- **Incident reports** — reports are collected for the safety workflow; the
+  planned human-review pipeline will approve incidents before model training.
 - **Trusted circle** — saved places, each with its own set of contacts.
 - **Evidence vault** — photos stamped with time, coordinates and GPS accuracy.
 
@@ -141,8 +184,9 @@ reading alone, so every score is also shown as a number and a text band.
 
 ## Ports
 
-Both Flask apps (`backend/app.py` and `safety_route/backend/app.py`) default to
-5001, so only one can run at a time. Set `PORT` to run them side by side.
+The main Flask API is `api/index.py` and defaults to port 5001. The separate
+`safety_route/backend/app.py` prototype also defaults to port 5001, so only one
+can run at a time unless you change the port configuration.
 
 ## Human-in-the-loop continual learning (planned)
 

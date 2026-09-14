@@ -5,7 +5,7 @@
  * Brings up the whole app with one command, and self-heals a fresh clone:
  *   1. creates ProTego_venv and installs requirements.txt if they're missing
  *   2. installs web/node_modules if missing
- *   3. starts Flask (API, port 5001) and Vite (UI, port 5173) together
+ *   3. starts Flask (api/index.py, port 5001) and Vite (UI, port 5173) together
  *
  * Ctrl+C stops both.
  */
@@ -93,7 +93,7 @@ function stopStrayServers() {
         "-NoProfile",
         "-Command",
         "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" |" +
-          " Where-Object { $_.CommandLine -like '*backend/app.py*' -or $_.CommandLine -like '*backend\\app.py*' } |" +
+          " Where-Object { $_.CommandLine -like '*api/index.py*' -or $_.CommandLine -like '*api\\index.py*' } |" +
           " ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }",
       ],
       { stdio: "ignore" },
@@ -104,7 +104,7 @@ function stopStrayServers() {
 stopStrayServers();
 
 // ---------------------------------------------------------------- python env
-const REQUIRED_IMPORTS = "import flask, flask_cors, sklearn, pandas";
+const REQUIRED_IMPORTS = "import flask, flask_cors, sklearn, pandas, dotenv, google.auth";
 
 /** Can the interpreter itself start? */
 function venvRuns() {
@@ -257,7 +257,7 @@ log(`${C.dim("API")}  http://127.0.0.1:5001`);
 log(`${C.dim("App")}  ${C.bold("http://localhost:5173")} ${C.dim("(opens automatically)")}`);
 console.log();
 
-start("api", C.green, venvPython, ["backend/app.py"], ROOT, {
+start("api", C.green, venvPython, ["api/index.py"], ROOT, {
   NO_BROWSER: "1", // dev.mjs lets Vite own the browser tab
   PYTHONUTF8: "1",
   PYTHONIOENCODING: "utf-8",
