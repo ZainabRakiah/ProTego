@@ -209,8 +209,12 @@ function start(name, color, cmd, args, cwd, env) {
   pipe(child.stdout, process.stdout);
   pipe(child.stderr, process.stdout);
 
-  child.on("exit", (code) => {
+  child.on("exit", (code, signal) => {
     if (shuttingDown) return;
+    if (code === null && signal === "SIGTERM") {
+      shutdown(0);
+      return;
+    }
     console.log(`${tag} ${C.yellow(`exited with code ${code}`)}`);
     shutdown(code ?? 1);
   });
