@@ -144,6 +144,73 @@ reading alone, so every score is also shown as a number and a text band.
 Both Flask apps (`backend/app.py` and `safety_route/backend/app.py`) default to
 5001, so only one can run at a time. Set `PORT` to run them side by side.
 
+## Human-in-the-loop continual learning (planned)
+
+This project currently includes a prototype safety-scoring workflow, but the
+human-verified continual-learning pipeline described below is a planned design
+rather than an already-implemented training loop.
+
+### Current state
+
+- The live safety score is currently a hybrid rule-based + ML system that uses
+  nearby counts of police, lamps, cameras and incidents.
+- The standalone model under `safety_route/backend/` trains an XGBoost regressor
+  on `incident_count`, `camera_count`, and `police_count` derived from the grid
+  features dataset.
+- User reports are currently accepted as input, but they are not yet gated behind
+  a formal approval workflow before they can influence model training.
+
+### Planned architecture
+
+User
+↓
+Incident Report
+↓
+Pending Verification
+↓
+Human Review / Admin Approve-Reject
+↓
+Verified Incident Store
+↓
+Geospatial Feature Update
+↓
+Training Dataset
+↓
+Candidate Model Training
+↓
+Validation Gate
+↓
+Model Registry
+↓
+Production Model
+
+### Key requirements for the planned feature
+
+- Raw reports must enter a pending or unverified state first.
+- Only approved incidents may influence the training dataset.
+- Rejected or unverified reports must not retrain the model automatically.
+- Retraining should be controlled through configuration thresholds and scheduled
+  or manual admin triggers rather than every single incident.
+- Each retraining run should produce a new model version, with metrics and a
+  production promotion gate before replacing the current model.
+- The previous production model must remain available for rollback.
+- A human review step is mandatory between user-submitted information and ML
+  learning.
+
+### Safety score note
+
+The existing Safety Score is a prototype score derived from the underlying
+spatial features and should not be silently replaced. The proposed workflow keeps
+that score for live route and map use while adding a distinct verified incident
+training path for future model improvements.
+
+### Prototype boundary
+
+This is still a prototype system. It does not provide real police dispatch,
+guaranteed emergency response, automatic emergency-service integration, or a
+production-grade ML lifecycle. The goal is to establish a clean, reviewable path
+for continual improvement as verified community incidents accumulate over time.
+
 ## Notes
 
 - `frontend/` is empty: git records it as a submodule gitlink with no
