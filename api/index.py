@@ -65,6 +65,7 @@ try:
         rollback_production_model,
         log_audit_event,
         get_current_production_model_meta,
+        check_and_trigger_continual_learning,
     )
 except ImportError:
     from api.continual_learning import (
@@ -73,6 +74,7 @@ except ImportError:
         rollback_production_model,
         log_audit_event,
         get_current_production_model_meta,
+        check_and_trigger_continual_learning,
     )
 
 # Get the project root directory (parent of backend)
@@ -345,7 +347,14 @@ def _count_within(points, lat, lng, radius_m=500.0, nearest_all=False):
     
 
 def _schedule_retrain(reason=""):
+    """
+    Invalidate spatial feature cache and check continual learning retraining threshold.
+    """
     _invalidate_incident_cache()
+    try:
+        check_and_trigger_continual_learning(trigger_actor="system")
+    except Exception as e:
+        print(f"[continual-learning] Automatic retraining trigger check error: {e}")
 
 
 def _is_night_hour(hour):
