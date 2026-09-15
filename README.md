@@ -209,23 +209,29 @@ The main Flask API is `api/index.py` and defaults to port 5001. The separate
 `safety_route/backend/app.py` prototype also defaults to port 5001, so only one
 can run at a time unless you change the port configuration.
 
-## Human-in-the-loop continual learning (planned)
+## Human-in-the-loop continual learning
 
-This project currently includes a prototype safety-scoring workflow, but the
-human-verified continual-learning pipeline described below is a planned design
-rather than an already-implemented training loop.
+This project includes a prototype safety-scoring workflow and a human-verified
+continual-learning pipeline. It should not be described as a production
+emergency-response system or as having a validated benchmark result unless a
+specific model run and evaluation report are supplied.
 
 ### Current state
 
 - The live safety score is currently a hybrid rule-based + ML system that uses
   nearby counts of police, lamps, cameras and incidents.
-- The standalone model under `safety_route/backend/` trains an XGBoost regressor
-  on `incident_count`, `camera_count`, and `police_count` derived from the grid
-  features dataset.
-- User reports are currently accepted as input, but they are not yet gated behind
-  a formal approval workflow before they can influence model training.
+- The continual-learning pipeline under `api/continual_learning.py` builds
+  features from `incident_count`, `camera_count`, and `police_count` in the
+  current grid-features dataset, adds approved incidents, and trains an
+  XGBoost regressor when XGBoost is available, with a Random Forest fallback.
+- New reports start as `PENDING`. Only reviewer-approved reports that pass data
+  quality checks enter the verified incident dataset; rejected and unverified
+  reports do not enter that dataset.
+- Each retraining run records RMSE, MAE, R², and MSE for its 80/20 test split.
+  The repository does not establish fixed headline values such as RMSE 4.12,
+  R² 0.912, or 93.4% Random Forest accuracy.
 
-### Planned architecture
+### Implemented workflow
 
 User
 ↓
