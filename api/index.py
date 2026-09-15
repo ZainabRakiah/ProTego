@@ -43,6 +43,7 @@ try:
         query_collection,
         update_document,
         delete_document,
+        get_all_documents,
     )
 except ImportError:
     from api.db import (
@@ -54,6 +55,24 @@ except ImportError:
         query_collection,
         update_document,
         delete_document,
+        get_all_documents,
+    )
+
+try:
+    from continual_learning import (
+        add_to_verified_dataset,
+        run_retraining_pipeline,
+        rollback_production_model,
+        log_audit_event,
+        get_current_production_model_meta,
+    )
+except ImportError:
+    from api.continual_learning import (
+        add_to_verified_dataset,
+        run_retraining_pipeline,
+        rollback_production_model,
+        log_audit_event,
+        get_current_production_model_meta,
     )
 
 # Get the project root directory (parent of backend)
@@ -170,24 +189,21 @@ def _load_protego_points():
 
 def _get_db_incident_points():
     """
-    Load incident points from DB: reports + SOS alerts.
-    These feed into safety scoring and ML training (feedback loop).
+    Load human-verified incident points from DB (verified_incidents collection).
+    Unverified (PENDING) or REJECTED user reports MUST NOT enter safety scoring or ML training.
     """
     points = []
     try:
-        db = get_db()
-        for collection_name in ("reports", "sos_alerts"):
-            docs = db.collection(collection_name).stream()
-            for doc in docs:
-                d = doc.to_dict()
-                try:
-                    lat, lng = float(d.get("lat", 0)), float(d.get("lng", 0))
-                    if -90 <= lat <= 90 and -180 <= lng <= 180:
-                        points.append((lat, lng))
-                except (TypeError, ValueError):
-                    pass
+        verified_docs = get_all_documents("verified_incidents")
+        for d in verified_docs:
+            try:
+                lat, lng = float(d.get("lat", 0)), float(d.get("lng", 0))
+                if -90 <= lat <= 90 and -180 <= lng <= 180:
+                    points.append((lat, lng))
+            except (TypeError, ValueError):
+                pass
     except Exception as e:
-        print(f"[safety-ml] Could not load DB incidents: {e}")
+        print(f"[safety-ml] Could not load verified DB incidents: {e}")
     return points
 
 
@@ -1755,17 +1771,27 @@ def update_profile():
 
 
 # ============================
-# REPORTS
+# REPORTS & HUMAN VERIFICATION
 # ============================
+
+def _is_admin_user(user_id):
+    if not user_id:
+        return False
+    user = get_document("users", str(user_id))
+    if not user:
+        return False
+    return bool(user.get("is_admin")) or user.get("email") == "admin@protego.com"
+
+
 @app.route("/api/reports", methods=["POST"])
 def create_report():
-
     data = request.json or {}
 
     user_id = data.get("user_id")
     location_label = data.get("location_label")
     lat = data.get("lat")
     lng = data.get("lng")
+    incident_type = data.get("incident_type") or data.get("type") or "general_safety"
     description = data.get("description")
     image_base64 = data.get("image_base64")
     timestamp = data.get("timestamp")
@@ -1774,23 +1800,182 @@ def create_report():
         return jsonify({"error": "user_id and description required"}), 400
 
     if not timestamp:
-        import time
         timestamp = int(time.time())
 
-    add_document("reports", {
-        "user_id": user_id,
+    report_id = add_document("reports", {
+        "user_id": str(user_id),
         "location_label": location_label,
         "lat": lat,
         "lng": lng,
+        "incident_type": incident_type,
         "description": description,
         "image_base64": image_base64,
         "timestamp": timestamp,
+        "verification_status": "PENDING",
+        "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "reviewed_at": None,
+        "reviewed_by": None,
+        "reviewer_notes": None,
     })
 
-    # Feedback loop: retrain model so it learns from this incident
-    _schedule_retrain("new report")
+    log_audit_event("INCIDENT_SUBMITTED", str(user_id), {
+        "report_id": report_id,
+        "incident_type": incident_type,
+        "lat": lat,
+        "lng": lng,
+    })
 
-    return jsonify({"message": "Report submitted successfully"}), 201
+    return jsonify({
+        "message": "Report submitted successfully. Verification status: PENDING",
+        "report_id": report_id,
+        "verification_status": "PENDING"
+    }), 201
+
+
+@app.route("/api/admin/reports", methods=["GET"])
+def admin_get_reports():
+    status = request.args.get("status")
+    all_reports = get_all_documents("reports")
+
+    if status and status.upper() != "ALL":
+        filtered = [r for r in all_reports if r.get("verification_status", "PENDING").upper() == status.upper()]
+    else:
+        filtered = all_reports
+
+    # Attach reporter email/name if available
+    for r in filtered:
+        uid = r.get("user_id")
+        if uid:
+            user = get_document("users", str(uid))
+            if user:
+                r["reporter_name"] = user.get("name")
+                r["reporter_email"] = user.get("email")
+
+    return jsonify({"reports": filtered}), 200
+
+
+@app.route("/api/admin/reports/<report_id>/review", methods=["POST"])
+def admin_review_report(report_id):
+    data = request.json or {}
+    action = (data.get("action") or "").upper()
+    reviewer_id = data.get("reviewer_id") or data.get("user_id")
+    reviewer_notes = data.get("reviewer_notes") or data.get("notes") or ""
+
+    if not reviewer_id or not _is_admin_user(reviewer_id):
+        return jsonify({"error": "Unauthorized. Reviewer must have administrator privileges."}), 403
+
+    if action not in ("APPROVE", "REJECT"):
+        return jsonify({"error": "Action must be APPROVE or REJECT"}), 400
+
+    report = get_document("reports", report_id)
+    if not report:
+        return jsonify({"error": "Report not found"}), 404
+
+    prev_status = report.get("verification_status", "PENDING")
+
+    # Disallow user approving their own report
+    if str(report.get("user_id")) == str(reviewer_id):
+        return jsonify({"error": "Conflict of interest: Users cannot review/approve their own reports."}), 403
+
+    if action == "APPROVE":
+        success, msg = add_to_verified_dataset(report_id, str(reviewer_id), reviewer_notes)
+        if not success:
+            return jsonify({"error": msg}), 422
+        return jsonify({"message": msg, "verification_status": "APPROVED"}), 200
+
+    else: # REJECT
+        update_document("reports", report_id, {
+            "verification_status": "REJECTED",
+            "reviewed_at": int(time.time()),
+            "reviewed_by": str(reviewer_id),
+            "reviewer_notes": reviewer_notes or "Rejected by reviewer",
+            "previous_status": prev_status,
+        })
+        log_audit_event("INCIDENT_REJECTED", str(reviewer_id), {
+            "report_id": report_id,
+            "reviewer_notes": reviewer_notes,
+            "previous_status": prev_status,
+            "new_status": "REJECTED",
+        })
+        return jsonify({"message": "Incident report rejected", "verification_status": "REJECTED"}), 200
+
+
+@app.route("/api/admin/verified-incidents", methods=["GET"])
+def admin_get_verified_incidents():
+    verified = get_all_documents("verified_incidents")
+    return jsonify({"verified_incidents": verified, "count": len(verified)}), 200
+
+
+@app.route("/api/admin/retrain", methods=["POST"])
+def admin_trigger_retrain():
+    data = request.json or {}
+    reviewer_id = data.get("reviewer_id") or data.get("user_id")
+
+    if not reviewer_id or not _is_admin_user(reviewer_id):
+        return jsonify({"error": "Unauthorized. Requires administrator privileges."}), 403
+
+    result = run_retraining_pipeline(trigger_actor=str(reviewer_id), reason="Manual admin trigger")
+    
+    # Reload in-memory model if deployed
+    global _SAFETY_MODEL
+    if result.get("status") == "DEPLOYED" and os.path.exists(_MODEL_PATH):
+        try:
+            import joblib
+            _SAFETY_MODEL = joblib.load(_MODEL_PATH)
+            print("[safety-ml] Reloaded updated production safety model")
+        except Exception as e:
+            print(f"[safety-ml] Could not reload updated safety model: {e}")
+
+    return jsonify(result), 200 if result.get("success") else 400
+
+
+@app.route("/api/admin/models", methods=["GET"])
+def admin_get_models():
+    models = get_all_documents("model_versions")
+    models.sort(key=lambda x: x.get("created_at", 0), reverse=True)
+    current_prod = get_current_production_model_meta()
+    return jsonify({
+        "models": models,
+        "current_production_model": current_prod
+    }), 200
+
+
+@app.route("/api/admin/models/rollback", methods=["POST"])
+def admin_rollback_model():
+    data = request.json or {}
+    target_version = data.get("model_version")
+    reviewer_id = data.get("reviewer_id") or data.get("user_id")
+
+    if not reviewer_id or not _is_admin_user(reviewer_id):
+        return jsonify({"error": "Unauthorized. Requires administrator privileges."}), 403
+
+    if not target_version:
+        return jsonify({"error": "model_version required"}), 400
+
+    try:
+        res = rollback_production_model(target_version, actor=str(reviewer_id))
+        
+        # Reload in-memory model
+        global _SAFETY_MODEL
+        if os.path.exists(_MODEL_PATH):
+            try:
+                import joblib
+                _SAFETY_MODEL = joblib.load(_MODEL_PATH)
+                print("[safety-ml] Reloaded rolled-back production safety model")
+            except Exception as e:
+                print(f"[safety-ml] Could not reload rolled-back safety model: {e}")
+
+        return jsonify(res), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/admin/audit-trail", methods=["GET"])
+def admin_get_audit_trail():
+    events = get_all_documents("audit_trail")
+    events.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
+    return jsonify({"audit_events": events, "count": len(events)}), 200
+
 
 
 # ============================

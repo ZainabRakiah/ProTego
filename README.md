@@ -52,9 +52,13 @@ cp .env.example .env
 ```
 
 Set `FIREBASE_CREDENTIALS` in `.env` to the complete Firebase service-account
-JSON. Keep that file local and never commit it. The app and health endpoint can
-start without credentials, but database-backed requests return HTTP 503 until
-this variable is configured.
+JSON if using Firebase. If `FIREBASE_CREDENTIALS` is omitted, ProTego automatically
+falls back to a local SQLite database (`api/database.db`) so login, signup, and all
+features work out-of-the-box locally.
+
+A default administrator account is seeded in local mode:
+- **Email**: `admin@protego.com`
+- **Password**: `admin123`
 
 When it is running, the app serves:
 
@@ -122,8 +126,7 @@ ProTego/
 - **Safety overlay** — a live grid heat layer over the map for the current hour.
 - **Press-and-hold SOS** — 1.5s hold guards against pocket triggers; logs your
   coordinates with the nearest police station or hospitals attached.
-- **Incident reports** — reports are collected for the safety workflow; the
-  planned human-review pipeline will approve incidents before model training.
+- **Human-in-the-Loop Continual Learning** — submitted incident reports start with a `PENDING` verification status. Reviewers approve or reject reports via the Admin Governance Dashboard. Only `APPROVED` reports undergo data-quality checks, enter the verified dataset, and update geospatial grid features. Candidate model retraining is triggered automatically after `N` newly approved incidents or via manual admin trigger. Candidate models are evaluated against a Quality Gate before deployment, with full model versioning, rollback, and audit trail support.
 - **Trusted circle** — saved places, each with its own set of contacts.
 - **Evidence vault** — photos stamped with time, coordinates and GPS accuracy.
 

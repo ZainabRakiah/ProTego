@@ -118,4 +118,19 @@ export const api = {
   listEvidence: (userId) => request(`/api/evidence/${userId}`),
   saveEvidence: (payload) => request("/api/evidence", { method: "POST", body: payload }),
   deleteEvidence: (id) => request(`/api/evidence/${id}`, { method: "DELETE" }),
+
+  // --- admin & continual learning ---
+  adminGetReports: (status = "PENDING") => request(`/api/admin/reports?status=${status}`),
+  adminReviewReport: (reportId, payload) =>
+    request(`/api/admin/reports/${reportId}/review`, { method: "POST", body: payload }),
+  adminGetVerifiedIncidents: () => request("/api/admin/verified-incidents"),
+  adminTriggerRetrain: (reviewerId) =>
+    request("/api/admin/retrain", { method: "POST", body: { reviewer_id: reviewerId } }),
+  adminGetModels: () => request("/api/admin/models"),
+  adminRollbackModel: (modelVersion, reviewerId) =>
+    request("/api/admin/models/rollback", {
+      method: "POST",
+      body: { model_version: modelVersion, reviewer_id: reviewerId },
+    }),
+  adminGetAuditTrail: () => request("/api/admin/audit-trail"),
 };

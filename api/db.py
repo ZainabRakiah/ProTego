@@ -1,29 +1,89 @@
 import os
 import json
 import time
+import uuid
+import sqlite3
 import urllib.request
 import urllib.parse
 import urllib.error
+from werkzeug.security import generate_password_hash
 from google.oauth2 import service_account
 import google.auth.transport.requests
 
 # ---------------------------------------------------------------------------
-# Lightweight Firebase Firestore REST Client
-# Avoids heavy gRPC / firebase-admin dependencies to keep Vercel bundle < 20MB
+# Lightweight Firebase Firestore REST Client + SQLite Fallback
 # ---------------------------------------------------------------------------
 
 _creds = None
 _auth_request = None
 _project_id = None
 
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "database.db")
+
 
 class FirebaseConfigurationError(RuntimeError):
     """Raised when Firestore credentials are required but not configured."""
 
 
+def is_sqlite_mode():
+    return not bool(os.environ.get("FIREBASE_CREDENTIALS"))
+
+
+def get_sqlite_conn():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _init_sqlite():
+    conn = get_sqlite_conn()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS documents (
+            collection TEXT NOT NULL,
+            doc_id TEXT NOT NULL,
+            data TEXT NOT NULL,
+            PRIMARY KEY (collection, doc_id)
+        )
+    """)
+    conn.commit()
+
+    # Seed admin user if not exists
+    cursor.execute("SELECT data FROM documents WHERE collection = 'users'")
+    rows = cursor.fetchall()
+    has_admin = False
+    for r in rows:
+        d = json.loads(r["data"])
+        if d.get("email") == "admin@protego.com" or d.get("is_admin"):
+            has_admin = True
+            break
+
+    if not has_admin:
+        admin_id = "admin_user_id"
+        admin_data = {
+            "id": admin_id,
+            "name": "System Administrator",
+            "email": "admin@protego.com",
+            "phone": "+10000000000",
+            "password_hash": generate_password_hash("admin123"),
+            "address": "Admin Command Center",
+            "is_admin": True,
+        }
+        cursor.execute(
+            "INSERT OR REPLACE INTO documents (collection, doc_id, data) VALUES (?, ?, ?)",
+            ("users", admin_id, json.dumps(admin_data))
+        )
+        conn.commit()
+
+    conn.close()
+
+
 def _get_auth():
     """Initialise and refresh Google OAuth2 credentials from FIREBASE_CREDENTIALS."""
     global _creds, _auth_request, _project_id
+
+    if is_sqlite_mode():
+        return None, "sqlite-local"
 
     if _creds is None:
         creds_json = os.environ.get("FIREBASE_CREDENTIALS")
@@ -136,29 +196,65 @@ def get_db():
 
 
 def init_db():
-    """Ensure credentials can authenticate."""
-    try:
-        _get_auth()
-    except Exception as e:
-        print(f"[firebase-warning] Deferred Firestore auth init: {e}")
+    """Ensure database connection/tables are initialised."""
+    if is_sqlite_mode():
+        _init_sqlite()
+        print("[db-init] Using SQLite database at:", DB_PATH)
+    else:
+        try:
+            _get_auth()
+            print("[db-init] Using Firebase Firestore")
+        except Exception as e:
+            print(f"[firebase-warning] Deferred Firestore auth init: {e}")
 
 
 # ---------------------------------------------------------------------------
-# Core Firestore Document Operations
+# Core Document Operations
 # ---------------------------------------------------------------------------
 
-def add_document(collection: str, data: dict) -> str:
-    """Add a document and return its auto-generated ID."""
+def add_document(collection: str, data: dict, custom_id: str = None) -> str:
+    """Add a document and return its ID."""
+    if is_sqlite_mode():
+        doc_id = custom_id or str(uuid.uuid4())
+        doc_data = dict(data)
+        doc_data["id"] = doc_id
+        conn = get_sqlite_conn()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT OR REPLACE INTO documents (collection, doc_id, data) VALUES (?, ?, ?)",
+            (collection, doc_id, json.dumps(doc_data))
+        )
+        conn.commit()
+        conn.close()
+        return doc_id
+
     token, project_id = _get_auth()
     url = f"https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents/{collection}"
+    if custom_id:
+        url += f"?documentId={urllib.parse.quote(custom_id)}"
     payload = {"fields": {k: _py_to_firestore_val(v) for k, v in data.items()}}
     resp = _api_request(url, method="POST", data=payload)
     name = resp.get("name", "")
-    return name.split("/")[-1] if "/" in name else ""
+    return name.split("/")[-1] if "/" in name else (custom_id or "")
 
 
 def get_document(collection: str, doc_id: str):
     """Fetch a single document by ID. Returns dict | None."""
+    if is_sqlite_mode():
+        conn = get_sqlite_conn()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT data FROM documents WHERE collection = ? AND doc_id = ?",
+            (collection, str(doc_id))
+        )
+        row = cursor.fetchone()
+        conn.close()
+        if not row:
+            return None
+        d = json.loads(row["data"])
+        d["id"] = str(doc_id)
+        return d
+
     token, project_id = _get_auth()
     url = f"https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents/{collection}/{doc_id}"
     resp = _api_request(url, method="GET")
@@ -167,6 +263,32 @@ def get_document(collection: str, doc_id: str):
 
 def query_collection(collection: str, field: str, op: str, value):
     """Return list[dict] for a simple single-field query."""
+    if is_sqlite_mode():
+        all_docs = get_all_documents(collection)
+        res = []
+        for doc in all_docs:
+            val = doc.get(field)
+            val_comp = str(val).lower() if isinstance(val, str) else val
+            target_comp = str(value).lower() if isinstance(value, str) else value
+            
+            match = False
+            if op in ("==", "="):
+                match = (val_comp == target_comp)
+            elif op == "!=":
+                match = (val_comp != target_comp)
+            elif op == "<":
+                match = (val is not None and val < value)
+            elif op == "<=":
+                match = (val is not None and val <= value)
+            elif op == ">":
+                match = (val is not None and val > value)
+            elif op == ">=":
+                match = (val is not None and val >= value)
+            
+            if match:
+                res.append(doc)
+        return res
+
     token, project_id = _get_auth()
     url = f"https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents:runQuery"
     
@@ -203,6 +325,19 @@ def query_collection(collection: str, field: str, op: str, value):
 
 def get_all_documents(collection: str):
     """Fetch all documents in a collection."""
+    if is_sqlite_mode():
+        conn = get_sqlite_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT doc_id, data FROM documents WHERE collection = ?", (collection,))
+        rows = cursor.fetchall()
+        conn.close()
+        res = []
+        for r in rows:
+            d = json.loads(r["data"])
+            d["id"] = r["doc_id"]
+            res.append(d)
+        return res
+
     token, project_id = _get_auth()
     url = f"https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents/{collection}?pageSize=1000"
     resp = _api_request(url, method="GET")
@@ -213,6 +348,20 @@ def get_all_documents(collection: str):
 
 def update_document(collection: str, doc_id: str, data: dict):
     """Merge-update fields on an existing document."""
+    if is_sqlite_mode():
+        existing = get_document(collection, doc_id) or {}
+        existing.update(data)
+        existing["id"] = str(doc_id)
+        conn = get_sqlite_conn()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT OR REPLACE INTO documents (collection, doc_id, data) VALUES (?, ?, ?)",
+            (collection, str(doc_id), json.dumps(existing))
+        )
+        conn.commit()
+        conn.close()
+        return
+
     token, project_id = _get_auth()
     field_paths = "&".join([f"updateMask.fieldPaths={urllib.parse.quote(k)}" for k in data.keys()])
     url = f"https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents/{collection}/{doc_id}?{field_paths}"
@@ -222,6 +371,18 @@ def update_document(collection: str, doc_id: str, data: dict):
 
 def delete_document(collection: str, doc_id: str):
     """Delete a document by ID."""
+    if is_sqlite_mode():
+        conn = get_sqlite_conn()
+        cursor = conn.cursor()
+        cursor.execute(
+            "DELETE FROM documents WHERE collection = ? AND doc_id = ?",
+            (collection, str(doc_id))
+        )
+        conn.commit()
+        conn.close()
+        return
+
     token, project_id = _get_auth()
     url = f"https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents/{collection}/{doc_id}"
     _api_request(url, method="DELETE")
+

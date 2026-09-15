@@ -12,6 +12,7 @@ import Report from "@/pages/Report";
 import Contacts from "@/pages/Contacts";
 import Evidence from "@/pages/Evidence";
 import Profile from "@/pages/Profile";
+import Admin from "@/pages/Admin";
 
 function RequireAuth({ children }) {
   const { user } = useAuth();
@@ -68,6 +69,7 @@ function Routing() {
         <Route path="contacts" element={<Contacts />} />
         <Route path="evidence" element={<Evidence />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="admin" element={<Admin />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

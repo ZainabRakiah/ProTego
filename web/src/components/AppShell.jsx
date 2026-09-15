@@ -12,6 +12,7 @@ import {
   X,
   Wifi,
   WifiOff,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, Separator } from "@/components/ui/misc";
@@ -31,6 +32,7 @@ const NAV = [
   { to: "/report", label: "Report", icon: FileWarning },
   { to: "/contacts", label: "Trusted circle", icon: Users },
   { to: "/evidence", label: "Evidence vault", icon: Camera },
+  { to: "/admin", label: "Governance & ML", icon: ShieldCheck },
   { to: "/profile", label: "Profile", icon: UserIcon },
 ];
 
