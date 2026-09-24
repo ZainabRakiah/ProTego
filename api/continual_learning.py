@@ -32,7 +32,10 @@ GRID_PATH = os.path.join(BASE_DIR, "safety_route", "data", "grid_features.csv")
 
 GRID_STEP = 0.0015
 
-os.makedirs(MODELS_DIR, exist_ok=True)
+try:
+    os.makedirs(MODELS_DIR, exist_ok=True)
+except Exception as e:
+    pass
 
 
 # ---------------------------------------------------------------------------

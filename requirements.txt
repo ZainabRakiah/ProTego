@@ -6,3 +6,6 @@ joblib
 google-auth
 requests
 python-dotenv
+pandas
+numpy
+scikit-learn

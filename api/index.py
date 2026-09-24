@@ -58,24 +58,37 @@ except ImportError:
         get_all_documents,
     )
 
+def _noop_cl(*args, **kwargs):
+    return {"error": "Continual learning module not available in this environment."}
+
 try:
-    from continual_learning import (
-        add_to_verified_dataset,
-        run_retraining_pipeline,
-        rollback_production_model,
-        log_audit_event,
-        get_current_production_model_meta,
-        check_and_trigger_continual_learning,
-    )
-except ImportError:
-    from api.continual_learning import (
-        add_to_verified_dataset,
-        run_retraining_pipeline,
-        rollback_production_model,
-        log_audit_event,
-        get_current_production_model_meta,
-        check_and_trigger_continual_learning,
-    )
+    try:
+        from continual_learning import (
+            add_to_verified_dataset,
+            run_retraining_pipeline,
+            rollback_production_model,
+            log_audit_event,
+            get_current_production_model_meta,
+            check_and_trigger_continual_learning,
+        )
+    except ImportError:
+        from api.continual_learning import (
+            add_to_verified_dataset,
+            run_retraining_pipeline,
+            rollback_production_model,
+            log_audit_event,
+            get_current_production_model_meta,
+            check_and_trigger_continual_learning,
+        )
+except Exception as _cl_import_err:
+    print(f"[continual-learning] Module unavailable (pandas/numpy not installed?): {_cl_import_err}")
+    add_to_verified_dataset = _noop_cl
+    run_retraining_pipeline = _noop_cl
+    rollback_production_model = _noop_cl
+    log_audit_event = _noop_cl
+    get_current_production_model_meta = _noop_cl
+    check_and_trigger_continual_learning = _noop_cl
+
 
 # Get the project root directory (parent of backend)
 BASE_DIR = os.path.dirname(API_DIR)

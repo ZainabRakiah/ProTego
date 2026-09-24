@@ -18,7 +18,39 @@ _creds = None
 _auth_request = None
 _project_id = None
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "database.db")
+def get_db_path():
+    """Returns a writable path for SQLite database (using /tmp on Vercel or read-only filesystems)."""
+    default_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "database.db")
+
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        tmp_db = os.path.join("/tmp", "database.db")
+        if not os.path.exists(tmp_db) and os.path.exists(default_path):
+            import shutil
+            try:
+                shutil.copy2(default_path, tmp_db)
+            except Exception:
+                pass
+        return tmp_db
+
+    try:
+        db_dir = os.path.dirname(default_path)
+        test_file = os.path.join(db_dir, ".write_test")
+        with open(test_file, "w") as f:
+            f.write("1")
+        os.remove(test_file)
+        return default_path
+    except (OSError, IOError):
+        tmp_db = os.path.join("/tmp", "database.db")
+        if not os.path.exists(tmp_db) and os.path.exists(default_path):
+            import shutil
+            try:
+                shutil.copy2(default_path, tmp_db)
+            except Exception:
+                pass
+        return tmp_db
+
+
+DB_PATH = get_db_path()
 
 
 class FirebaseConfigurationError(RuntimeError):
@@ -30,7 +62,7 @@ def is_sqlite_mode():
 
 
 def get_sqlite_conn():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(get_db_path())
     conn.row_factory = sqlite3.Row
     return conn
 
