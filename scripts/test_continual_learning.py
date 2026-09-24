@@ -6,6 +6,7 @@ import sys
 import os
 import json
 import time
+import random
 import unittest
 
 API_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "api")
@@ -102,7 +103,7 @@ class TestHumanInTheLoopContinualLearning(unittest.TestCase):
 
     def test_05_admin_approves_incident_and_enters_verified_dataset(self):
         """5. Reviewer approves incident -> Enters verified dataset with geospatial cell."""
-        unique_offset = (time.time() % 100) * 0.001
+        unique_offset = (random.random() * 5.0) + 0.05
         report_id = add_document("reports", {
             "user_id": "reporter_001",
             "lat": 12.9720 + unique_offset,

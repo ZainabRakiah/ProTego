@@ -48,7 +48,8 @@ export default function Report() {
     try {
       const chosen = CATEGORIES.find((c) => c.id === category);
       await api.createReport({
-        user_id: user?.id ?? 0,
+        user_id: user?.id || "anonymous",
+        incident_type: category || "general_safety",
         location_label: label.trim() || chosen.label,
         lat: here.lat,
         lng: here.lng,

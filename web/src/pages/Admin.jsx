@@ -67,8 +67,9 @@ export default function Admin() {
   const handleReview = async (action) => {
     if (!selectedReport) return;
     setActionLoading(true);
+    const rId = selectedReport.id || selectedReport.report_id;
     try {
-      const res = await api.adminReviewReport(selectedReport.id, {
+      const res = await api.adminReviewReport(rId, {
         action,
         reviewer_id: user?.id,
         reviewer_notes: reviewerNotes,

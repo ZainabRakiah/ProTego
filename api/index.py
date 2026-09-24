@@ -932,7 +932,8 @@ def login():
             "name": user["name"],
             "email": user["email"],
             "phone": user.get("phone") or None,
-            "address": user.get("address") or None
+            "address": user.get("address") or None,
+            "is_admin": bool(user.get("is_admin")) or user.get("email") == "admin@protego.com",
         }
     }), 200
 
@@ -1818,7 +1819,7 @@ def create_report():
     image_base64 = data.get("image_base64")
     timestamp = data.get("timestamp")
 
-    if not user_id or not description:
+    if user_id is None or str(user_id).strip() == "" or not description:
         return jsonify({"error": "user_id and description required"}), 400
 
     if not timestamp:
@@ -1864,8 +1865,12 @@ def admin_get_reports():
     else:
         filtered = all_reports
 
-    # Attach reporter email/name if available
+    # Attach reporter email/name and ensure id/report_id are synchronized
     for r in filtered:
+        doc_id = r.get("id") or r.get("report_id")
+        if doc_id:
+            r["id"] = doc_id
+            r["report_id"] = doc_id
         uid = r.get("user_id")
         if uid:
             user = get_document("users", str(uid))
