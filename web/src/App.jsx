@@ -22,6 +22,14 @@ function RequireAuth({ children }) {
   return children;
 }
 
+function RequireAdmin({ children }) {
+  const { user } = useAuth();
+  const isAdmin = Boolean(user?.is_admin || user?.email === "admin@protego.com" || user?.role === "admin");
+  if (!user) return <Navigate to="/login" replace />;
+  if (!isAdmin) return <Navigate to="/" replace />;
+  return children;
+}
+
 function RedirectIfAuthed({ children }) {
   const { user } = useAuth();
   return user ? <Navigate to="/" replace /> : children;
@@ -67,11 +75,18 @@ function Routing() {
         <Route index element={<Dashboard />} />
         <Route path="map" element={<MapPage />} />
         <Route path="accident" element={<AccidentRescue />} />
-        <Route path="report" element={<Report />} />
         <Route path="contacts" element={<Contacts />} />
         <Route path="evidence" element={<Evidence />} />
+        <Route path="report" element={<Report />} />
         <Route path="profile" element={<Profile />} />
-        <Route path="admin" element={<Admin />} />
+        <Route
+          path="admin"
+          element={
+            <RequireAdmin>
+              <Admin />
+            </RequireAdmin>
+          }
+        />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

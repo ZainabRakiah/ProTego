@@ -7,6 +7,7 @@ import {
   FileWarning,
   Users,
   Camera,
+  Compass,
   User as UserIcon,
   LogOut,
   Menu,
@@ -26,17 +27,6 @@ import { MobileNav } from "@/components/MobileNav";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-
-const NAV = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/map", label: "Safe route", icon: MapIcon },
-  { to: "/accident", label: "Accident rescue", icon: Ambulance },
-  { to: "/report", label: "Report", icon: FileWarning },
-  { to: "/contacts", label: "Trusted circle", icon: Users },
-  { to: "/evidence", label: "Evidence vault", icon: Camera },
-  { to: "/admin", label: "Governance & ML", icon: ShieldCheck },
-  { to: "/profile", label: "Profile", icon: UserIcon },
-];
 
 /** Re-exported so pages can keep importing Brand from the shell. */
 export function Brand({ className }) {
@@ -82,40 +72,70 @@ function BackendStatus({ compact = false }) {
 }
 
 function NavItems({ onNavigate }) {
+  const { user } = useAuth();
+  const isAdmin = Boolean(user?.is_admin || user?.email === "admin@protego.com" || user?.role === "admin");
+
+  const NAV = [
+    { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+    { to: "/map", label: "Safe route", icon: MapIcon },
+    { to: "/accident", label: "Accident rescue", icon: Ambulance },
+    { to: "/contacts", label: "Trusted circle", icon: Users },
+    { to: "/evidence", label: "Evidence vault", icon: Camera },
+    { to: "/friendsnavigator/", label: "Friends navigator", icon: Compass, external: true },
+    { to: "/report", label: "Report", icon: FileWarning },
+    ...(isAdmin ? [{ to: "/admin", label: "Governance & ML", icon: ShieldCheck }] : []),
+    { to: "/profile", label: "Profile", icon: UserIcon },
+  ];
+
   return (
     <nav className="flex flex-col gap-1">
-      {NAV.map(({ to, label, icon: Icon, end }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={end}
-          data-magnetic
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            cn(
-              "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-              "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-              isActive
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-            )
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <span
-                aria-hidden
-                className={cn(
-                  "absolute top-1/2 left-0 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-primary transition-opacity",
-                  isActive ? "opacity-100" : "opacity-0",
-                )}
-              />
-              <Icon className="size-4 shrink-0" />
-              {label}
-            </>
-          )}
-        </NavLink>
-      ))}
+      {NAV.map(({ to, label, icon: Icon, end, external }) =>
+        external ? (
+          <a
+            key={to}
+            href={to}
+            target="_blank"
+            rel="noreferrer"
+            onClick={onNavigate}
+            data-magnetic
+            className="group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <Icon className="size-4 shrink-0 text-amber-400" />
+            {label}
+          </a>
+        ) : (
+          <NavLink
+            key={to}
+            to={to}
+            end={end}
+            data-magnetic
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              cn(
+                "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                isActive
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+              )
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute top-1/2 left-0 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-primary transition-opacity",
+                    isActive ? "opacity-100" : "opacity-0",
+                  )}
+                />
+                <Icon className="size-4 shrink-0" />
+                {label}
+              </>
+            )}
+          </NavLink>
+        )
+      )}
     </nav>
   );
 }
