@@ -102,6 +102,7 @@ export const api = {
     request("/api/emergency/sos-accident", { method: "POST", body: { user_id, lat, lng } }),
   accidentThirdParty: (lat, lng, label) =>
     request("/api/emergency/accident-third-party", { method: "POST", body: { lat, lng, label } }),
+  getHospitalAlerts: () => request("/api/emergency/hospital-alerts"),
 
   // --- reports ---
   createReport: (payload) => request("/api/reports", { method: "POST", body: payload }),

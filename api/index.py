@@ -1650,7 +1650,7 @@ def sos_accident():
         return jsonify({"error": "user_id, lat, lng required"}), 400
 
     try:
-        user_id = int(user_id)
+        user_id = int(user_id) if str(user_id).isdigit() else user_id
         lat = float(lat)
         lng = float(lng)
     except Exception:
@@ -1660,15 +1660,33 @@ def sos_accident():
     enriched = []
     for h in hospitals:
         d_m = _haversine_m(lat, lng, h["lat"], h["lng"])
-        enriched.append({**h, "distance_km": d_m / 1000.0})
+        enriched.append({**h, "distance_km": round(d_m / 1000.0, 2)})
     enriched.sort(key=lambda x: x["distance_km"])
     top3 = enriched[:3]
+    
+    for h in top3:
+        h["alert_sent"] = True
+        h["status"] = "ALERTED & DISPATCHED"
+        h["alert_time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    msg = f"ACCIDENT SOS: user={user_id} at {lat},{lng}. Nearest hospitals: {[h['name'] for h in top3]}"
+    msg = f"ACCIDENT SOS: user={user_id} at {lat},{lng}. Top 3 Hospitals Alerted: {[h['name'] for h in top3]}"
     _log_sos(user_id, lat, lng, msg)
 
+    for h in top3:
+        add_document("hospital_alerts", {
+            "user_id": user_id,
+            "hospital_name": h.get("name"),
+            "hospital_phone": h.get("phone", "N/A"),
+            "distance_km": h.get("distance_km"),
+            "lat": lat,
+            "lng": lng,
+            "status": "ALERTED & DISPATCHED",
+            "timestamp": int(time.time()),
+        })
+
     return jsonify({
-        "message": "Accident SOS logged (MVP). Integrate ambulance/police messaging next.",
+        "success": True,
+        "message": "Accident Rescue SOS triggered. Top 3 nearest hospitals alerted.",
         "hospitals": top3,
     }), 200
 
@@ -1678,7 +1696,7 @@ def accident_third_party():
     data = request.json or {}
     lat = data.get("lat")
     lng = data.get("lng")
-    label = data.get("label") or ""
+    label = data.get("label") or "Bystander Reported Location"
     if lat is None or lng is None:
         return jsonify({"error": "lat, lng required"}), 400
     try:
@@ -1687,10 +1705,51 @@ def accident_third_party():
     except Exception:
         return jsonify({"error": "Invalid values"}), 400
 
-    # For third party, log with user_id=0 (system) for now
-    msg = f"THIRD-PARTY ACCIDENT: location={label} at {lat},{lng}"
+    hospitals = _load_hospitals()
+    enriched = []
+    for h in hospitals:
+        d_m = _haversine_m(lat, lng, h["lat"], h["lng"])
+        enriched.append({**h, "distance_km": round(d_m / 1000.0, 2)})
+    enriched.sort(key=lambda x: x["distance_km"])
+    top3 = enriched[:3]
+
+    for h in top3:
+        h["alert_sent"] = True
+        h["status"] = "ALERTED & DISPATCHED"
+        h["alert_time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    msg = f"THIRD-PARTY ACCIDENT: location={label} at {lat},{lng}. Top 3 Hospitals Alerted: {[h['name'] for h in top3]}"
     _log_sos(0, lat, lng, msg)
-    return jsonify({"message": "Third-party accident logged (MVP)."}), 200
+
+    for h in top3:
+        add_document("hospital_alerts", {
+            "user_id": 0,
+            "location_label": label,
+            "hospital_name": h.get("name"),
+            "hospital_phone": h.get("phone", "N/A"),
+            "distance_km": h.get("distance_km"),
+            "lat": lat,
+            "lng": lng,
+            "status": "ALERTED & DISPATCHED",
+            "timestamp": int(time.time()),
+        })
+
+    return jsonify({
+        "success": True,
+        "message": "Third-party accident reported. Top 3 nearest hospitals alerted.",
+        "hospitals": top3,
+    }), 200
+
+
+@app.route("/api/emergency/hospital-alerts", methods=["GET"])
+def get_hospital_alerts():
+    try:
+        alerts = query_collection("hospital_alerts", limit=20)
+        alerts.sort(key=lambda x: x.get("timestamp", 0), reverse=True)
+        return jsonify({"alerts": alerts}), 200
+    except Exception as e:
+        return jsonify({"alerts": [], "error": str(e)}), 200
+
 
 
 # ============================

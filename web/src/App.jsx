@@ -8,6 +8,7 @@ import { useAuth, AuthProvider } from "@/lib/auth";
 const Auth = React.lazy(() => import("@/pages/Auth"));
 import Dashboard from "@/pages/Dashboard";
 import MapPage from "@/pages/MapPage";
+import AccidentRescue from "@/pages/AccidentRescue";
 import Report from "@/pages/Report";
 import Contacts from "@/pages/Contacts";
 import Evidence from "@/pages/Evidence";
@@ -65,6 +66,7 @@ function Routing() {
       >
         <Route index element={<Dashboard />} />
         <Route path="map" element={<MapPage />} />
+        <Route path="accident" element={<AccidentRescue />} />
         <Route path="report" element={<Report />} />
         <Route path="contacts" element={<Contacts />} />
         <Route path="evidence" element={<Evidence />} />
