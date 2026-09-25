@@ -18,7 +18,7 @@ export function AreaPanel({ position }) {
   const [safety, setSafety] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
 
-  const key = position ? `${position.lat.toFixed(3)},${position.lng.toFixed(3)}` : null;
+  const key = position ? `${position.lat.toFixed(5)},${position.lng.toFixed(5)}` : null;
 
   React.useEffect(() => {
     if (!position) return;

@@ -193,13 +193,14 @@ export function RoutePlanner({
         })}
       </ol>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 pt-1">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={addStop}
           disabled={stopCount >= MAX_STOPS}
+          className="h-8 text-xs"
           title={
             stopCount >= MAX_STOPS ? `Up to ${MAX_STOPS} stops` : "Add a stop along the way"
           }
@@ -210,9 +211,10 @@ export function RoutePlanner({
 
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={reverse}
+          className="h-8 text-xs"
           title="Reverse the trip"
         >
           <ArrowUpDown className="size-3.5" />
@@ -220,16 +222,16 @@ export function RoutePlanner({
         </Button>
 
         {stopCount > 0 ? (
-          <span className="ml-auto text-xs text-muted-foreground">
-            {stopCount} {stopCount === 1 ? "stop" : "stops"}
+          <span className="text-xs text-muted-foreground">
+            ({stopCount} {stopCount === 1 ? "stop" : "stops"})
           </span>
         ) : null}
-      </div>
 
-      <Button type="submit" size="lg" className="w-full" disabled={routing}>
-        {routing ? <Loader2 className="size-4 animate-spin" /> : <Navigation className="size-4" />}
-        {routing ? "Scoring routes…" : "Find safest route"}
-      </Button>
+        <Button type="submit" size="sm" className="ml-auto h-8 text-xs px-4" disabled={routing}>
+          {routing ? <Loader2 className="size-3.5 animate-spin" /> : <Navigation className="size-3.5" />}
+          {routing ? "Scoring routes…" : "Find safest route"}
+        </Button>
+      </div>
     </form>
   );
 }

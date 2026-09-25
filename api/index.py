@@ -154,12 +154,14 @@ def _load_protego_points():
     """
     Load ProTego safety dataset once.
 
-    Uses safety_route/data1/ProTego.csv if present, otherwise data/ProTego.csv.
+    Uses API_DIR/ProTego.csv, data/ProTego.csv, or safety_route dataset.
     Returns dict with lists of (lat, lon).
     """
     candidates = [
-        os.path.join(BASE_DIR, "safety_route", "data1", "ProTego.csv"),
+        os.path.join(API_DIR, "ProTego.csv"),
         os.path.join(BASE_DIR, "data", "ProTego.csv"),
+        os.path.join(BASE_DIR, "safety_route", "data1", "ProTego.csv"),
+        os.path.join(BASE_DIR, "safety_route", "data", "ProTego.csv"),
     ]
     path = None
     for p in candidates:
@@ -188,15 +190,15 @@ def _load_protego_points():
                 police.append((lat, lon))
             elif t in ("street_lamp", "lamp", "streetlamp"):
                 lamps.append((lat, lon))
-            elif t in ("camera", "cctv", "surveillance_camera", "surveillance"):
+            elif t in ("camera", "cctv", "surveillance_camera", "surveillance", "speed_camera"):
                 cameras.append((lat, lon))
 
-            # Incidents: treat rows with crime_reports>0 as an incident signal at that point
+            # Incidents: treat rows with type incident/crime/accident or crime_reports>0
             try:
                 crime_reports = float(row.get("crime_reports") or 0)
             except Exception:
                 crime_reports = 0
-            if crime_reports and crime_reports > 0:
+            if t in ("incident", "crime", "accident") or crime_reports > 0:
                 incidents.append((lat, lon))
 
     return {"police": police, "lamp": lamps, "camera": cameras, "incident": incidents}

@@ -320,11 +320,72 @@ export default function MapPage() {
         </Button>
       </header>
 
+      {/* Top Compact Route Planner Header Card */}
+      <Card className="p-3 sm:p-4 border border-border/80 shadow-sm bg-card/95 backdrop-blur">
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
+            <div
+              role="radiogroup"
+              aria-label="Travel mode"
+              className="flex items-center gap-1 rounded-lg border border-border/70 bg-muted/40 p-0.5"
+            >
+              {[
+                { id: "walk", label: "Walk", icon: Footprints },
+                { id: "drive", label: "Drive", icon: Car },
+              ].map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={travelMode === id}
+                  onClick={() => setTravelMode(id)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                    travelMode === id
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Icon className="size-3.5" />
+                  {label}
+                </button>
+              ))}
+            </div>
+            <span className="text-xs text-muted-foreground font-medium">
+              Navigation & Waypoints
+            </span>
+          </div>
+
+          <RoutePlanner
+            waypoints={waypoints}
+            onChange={setWaypoints}
+            onSubmit={findRoute}
+            routing={routing}
+            position={position}
+            accuracy={accuracy}
+            geoError={geoError}
+            geoLoading={geoLoading}
+            onRetryLocation={retryLocation}
+          />
+
+          {routeError ? (
+            <p
+              role="alert"
+              className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs text-destructive"
+            >
+              {routeError}
+            </p>
+          ) : null}
+          {geoError ? <p className="text-xs text-muted-foreground">{geoError}</p> : null}
+        </div>
+      </Card>
+
       {/* Panel switcher — only meaningful below lg, where panels stack. */}
       <div className="flex gap-1 rounded-lg border border-border/70 bg-muted/40 p-1 lg:hidden">
         {[
-          { id: "route", label: "Route", icon: RouteIcon },
-          { id: "area", label: "Area", icon: Compass },
+          { id: "route", label: "Summary", icon: RouteIcon },
+          { id: "area", label: "Area Details", icon: Compass },
           { id: "sos", label: "SOS", icon: ShieldCheck },
         ].map(({ id, label, icon: Icon }) => (
           <button
@@ -347,81 +408,9 @@ export default function MapPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(320px,360px)_1fr] lg:gap-5">
-        {/* ---- Controls column ---- */}
+        {/* ---- Side column ---- */}
         <div className="space-y-4">
           <div className={cn(panel === "route" ? "block" : "hidden", "space-y-4 lg:block")}>
-            <Card>
-              <CardContent className="space-y-4 p-4 sm:p-5">
-                <div
-                  role="radiogroup"
-                  aria-label="Travel mode"
-                  className="flex gap-1 rounded-lg border border-border/70 bg-muted/40 p-1"
-                >
-                  {[
-                    { id: "walk", label: "Walk", icon: Footprints },
-                    { id: "drive", label: "Drive", icon: Car },
-                  ].map(({ id, label, icon: Icon }) => (
-                    <button
-                      key={id}
-                      type="button"
-                      role="radio"
-                      aria-checked={travelMode === id}
-                      onClick={() => setTravelMode(id)}
-                      className={cn(
-                        "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                        travelMode === id
-                          ? "bg-card text-foreground shadow-sm"
-                          : "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      <Icon className="size-4" />
-                      {label}
-                    </button>
-                  ))}
-                </div>
-
-                <RoutePlanner
-                  waypoints={waypoints}
-                  onChange={setWaypoints}
-                  onSubmit={findRoute}
-                  routing={routing}
-                  position={position}
-                  accuracy={accuracy}
-                  geoError={geoError}
-                  geoLoading={geoLoading}
-                  onRetryLocation={retryLocation}
-                />
-
-                {routeError ? (
-                  <p
-                    role="alert"
-                    className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-                  >
-                    {routeError}
-                  </p>
-                ) : null}
-                {geoError ? <p className="text-xs text-muted-foreground">{geoError}</p> : null}
-
-                <Separator />
-
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Layers className="size-4 text-muted-foreground" />
-                    Safety overlay
-                  </div>
-                  <Button
-                    variant={showGrid ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={toggleGrid}
-                  >
-                    {gridLoading ? <Loader2 className="size-3.5 animate-spin" /> : null}
-                    {showGrid ? "On" : "Off"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
             {route ? (
               <Card>
                 <CardHeader className="flex-row items-center justify-between space-y-0">
