@@ -13,6 +13,9 @@ import {
   UserCheck,
   Building2,
   Radio,
+  LocateFixed,
+  Map as MapIcon,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,22 +29,24 @@ import { useAuth } from "@/lib/auth";
 export default function AccidentRescue() {
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Primary user location
   const [location, setLocation] = React.useState(null);
   const [loadingLoc, setLoadingLoc] = React.useState(true);
+
+  // Hospitals & Alert History
   const [hospitals, setHospitals] = React.useState([]);
   const [loadingHospitals, setLoadingHospitals] = React.useState(false);
   const [alertHistory, setAlertHistory] = React.useState([]);
-  
-  // 10-second SOS countdown overlay state
+
+  // SOS Countdown state
   const [sosActive, setSosActive] = React.useState(false);
   const [countdown, setCountdown] = React.useState(10);
   const [sosSending, setSosSending] = React.useState(false);
-  const timerRef = React.useRef(null);
 
-  // Third-party accident state
-  const [tpLat, setTpLat] = React.useState("");
-  const [tpLng, setTpLng] = React.useState("");
+  // Bystander / Third-party accident state
   const [tpLabel, setTpLabel] = React.useState("");
+  const [tpLocation, setTpLocation] = React.useState(null);
   const [tpSending, setTpSending] = React.useState(false);
 
   const fetchLocationAndHospitals = React.useCallback(() => {
@@ -60,10 +65,9 @@ export default function AccidentRescue() {
       },
       (err) => {
         console.error("Location error:", err);
-        toast.error("Unable to retrieve current location");
+        toast.error("Unable to retrieve current GPS location. Using default center.");
         setLoadingLoc(false);
-        // Fallback default coordinates (e.g. Bangalore center)
-        const defaultCoords = { lat: 12.9716, lng: 77.5946 };
+        const defaultCoords = { lat: 12.9716, lng: 77.5946 }; // Bangalore Center
         setLocation(defaultCoords);
         loadHospitals(defaultCoords.lat, defaultCoords.lng);
       },
@@ -100,43 +104,45 @@ export default function AccidentRescue() {
     loadAlertHistory();
   }, [fetchLocationAndHospitals]);
 
-  // Handle SOS 10s Countdown
-  const startSosCountdown = () => {
-    if (sosActive) return;
-    setSosActive(true);
-    setCountdown(10);
-    timerRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-          triggerAccidentSos();
-          return 0;
-        }
-        return prev - 1;
-      });
+  // Clean Countdown logic (Fires EXACTLY ONCE when countdown hits 0)
+  React.useEffect(() => {
+    if (!sosActive) return;
+
+    if (countdown <= 0) {
+      setSosActive(false);
+      triggerAccidentSos();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown((prev) => prev - 1);
     }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [sosActive, countdown]);
+
+  const startSosCountdown = () => {
+    if (sosActive || sosSending) return;
+    setCountdown(10);
+    setSosActive(true);
   };
 
   const cancelSosCountdown = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
     setSosActive(false);
     setCountdown(10);
     toast.info("Accident SOS cancelled");
   };
 
   const triggerAccidentSos = async () => {
+    if (sosSending) return;
     setSosSending(true);
     try {
       const userId = user?.id || "guest";
       const lat = location?.lat || 12.9716;
       const lng = location?.lng || 77.5946;
       const res = await api.sosAccident(userId, lat, lng);
-      setSosActive(false);
-      toast.success("🚨 Accident SOS Dispatched! Top 3 Hospitals Alerted.", { duration: 6000 });
+
+      toast.success("🚨 Accident SOS Dispatched! Top 3 Hospitals Alerted.", { id: "sos-dispatch-toast", duration: 5000 });
       if (res?.hospitals) {
         setHospitals(res.hospitals.slice(0, 3));
       }
@@ -149,22 +155,44 @@ export default function AccidentRescue() {
     }
   };
 
-  // Handle Third-party accident report
+  // Bystander / Third-party location helpers
+  const handleFetchThirdPartyLiveLoc = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported");
+      return;
+    }
+    toast.info("Fetching current GPS location...");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setTpLocation(coords);
+        if (!tpLabel) setTpLabel("My Current Location");
+        toast.success(`Location set: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
+      },
+      (err) => {
+        console.error("GPS fetch error:", err);
+        toast.error("Could not fetch GPS location");
+      }
+    );
+  };
+
+  const handleOpenMapPicker = () => {
+    navigate("/map");
+  };
+
   const handleThirdPartySubmit = async (e) => {
     e.preventDefault();
-    const lat = parseFloat(tpLat || (location?.lat ? String(location.lat) : ""));
-    const lng = parseFloat(tpLng || (location?.lng ? String(location.lng) : ""));
-    if (!lat || !lng) {
-      toast.error("Please provide valid latitude and longitude.");
+    const coords = tpLocation || location || { lat: 12.9716, lng: 77.5946 };
+    if (!coords?.lat || !coords?.lng) {
+      toast.error("Please select or fetch a valid location first.");
       return;
     }
     setTpSending(true);
     try {
-      const res = await api.accidentThirdParty(lat, lng, tpLabel || "Third-party report");
-      toast.success("Accident reported! Top 3 nearest hospitals alerted for location.");
+      const res = await api.accidentThirdParty(coords.lat, coords.lng, tpLabel || "Bystander Reported Accident");
+      toast.success("Accident reported! Top 3 nearest hospitals alerted.");
       setTpLabel("");
-      setTpLat("");
-      setTpLng("");
+      setTpLocation(null);
       await loadAlertHistory();
     } catch (err) {
       console.error("Third party accident error:", err);
@@ -186,34 +214,44 @@ export default function AccidentRescue() {
       {/* 10-Second SOS Overlay Modal */}
       {sosActive && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
-          <Card className="w-full max-w-md border-red-500/50 bg-card text-card-foreground shadow-2xl text-center">
-            <CardHeader className="space-y-2">
-              <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-red-500/20 text-red-500 animate-pulse">
-                <Ambulance className="size-10" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-red-500">
+          <Card className="w-full max-w-md border-red-500/50 bg-card/95 text-card-foreground shadow-2xl text-center p-6 space-y-6">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-red-500/20 text-red-500 animate-pulse">
+              <Ambulance className="size-10" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold tracking-tight text-red-500">
                 Accident SOS Countdown
-              </CardTitle>
-              <CardDescription>
+              </h2>
+              <p className="text-sm text-muted-foreground">
                 Top 3 nearest hospitals and emergency contacts will be dispatched in:
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="text-6xl font-black tracking-tight text-primary">
-                {countdown}s
-              </div>
-              <p className="text-xs text-muted-foreground">
-                If this is a false alarm, press cancel immediately.
               </p>
-              <div className="flex gap-3 justify-center">
-                <Button variant="outline" size="lg" className="w-full" onClick={cancelSosCountdown}>
-                  Cancel SOS
-                </Button>
-                <Button variant="destructive" size="lg" className="w-full font-bold" onClick={triggerAccidentSos} disabled={sosSending}>
-                  {sosSending ? "Alerting..." : "Send Now"}
-                </Button>
-              </div>
-            </CardContent>
+            </div>
+
+            <div className="text-6xl font-black tracking-tight text-primary">
+              {countdown}s
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              If this is a false alarm, press cancel immediately.
+            </p>
+
+            <div className="flex gap-3">
+              <Button variant="outline" size="lg" className="w-full" onClick={cancelSosCountdown}>
+                Cancel SOS
+              </Button>
+              <Button
+                variant="destructive"
+                size="lg"
+                className="w-full font-bold bg-red-600 hover:bg-red-700"
+                onClick={() => {
+                  setSosActive(false);
+                  triggerAccidentSos();
+                }}
+                disabled={sosSending}
+              >
+                {sosSending ? "Sending..." : "Send Now"}
+              </Button>
+            </div>
           </Card>
         </div>
       )}
@@ -231,7 +269,13 @@ export default function AccidentRescue() {
             Automatic 3-nearest hospital dispatch, hospital emergency alerts & crash assistance.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchLocationAndHospitals} disabled={loadingLoc} className="self-start sm:self-auto gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchLocationAndHospitals}
+          disabled={loadingLoc}
+          className="self-start sm:self-auto gap-2"
+        >
           <RefreshCw className={`size-4 ${loadingLoc ? "animate-spin" : ""}`} />
           Refresh Location
         </Button>
@@ -254,7 +298,7 @@ export default function AccidentRescue() {
             <button
               onClick={startSosCountdown}
               disabled={sosActive || sosSending}
-              className="group relative flex size-36 items-center justify-center rounded-full bg-gradient-to-br from-red-600 to-red-800 text-white font-extrabold text-2xl shadow-xl hover:scale-105 active:scale-95 transition-transform border-4 border-red-400/50"
+              className="group relative flex size-36 items-center justify-center rounded-full bg-gradient-to-br from-red-600 to-red-800 text-white font-extrabold text-2xl shadow-xl hover:scale-105 active:scale-95 transition-transform border-4 border-red-400/50 cursor-pointer"
             >
               <div className="absolute inset-0 rounded-full bg-red-500/30 animate-ping" />
               <div className="relative flex flex-col items-center gap-1">
@@ -280,7 +324,7 @@ export default function AccidentRescue() {
               </CardTitle>
               <CardDescription>
                 {location
-                  ? `Located at ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`
+                  ? `Based on coordinates: ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`
                   : "Fetching your GPS coordinates..."}
               </CardDescription>
             </div>
@@ -319,7 +363,7 @@ export default function AccidentRescue() {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <MapPin className="size-3 shrink-0" />
+                        <MapPin className="size-3 shrink-0 text-muted-foreground" />
                         {h.address || "Bangalore Emergency Medical Zone"}
                       </p>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1">
@@ -331,12 +375,7 @@ export default function AccidentRescue() {
                     </div>
                     <div className="flex items-center gap-2 self-start sm:self-center">
                       {h.phone && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="gap-1.5"
-                        >
+                        <Button variant="outline" size="sm" asChild className="gap-1.5">
                           <a href={`tel:${h.phone}`}>
                             <PhoneCall className="size-3.5" />
                             Call
@@ -386,29 +425,51 @@ export default function AccidentRescue() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="tpLat">Latitude</Label>
-                  <Input
-                    id="tpLat"
-                    type="number"
-                    step="any"
-                    placeholder={location ? String(location.lat) : "12.9716"}
-                    value={tpLat}
-                    onChange={(e) => setTpLat(e.target.value)}
-                  />
+              {/* Location Selector Actions */}
+              <div className="space-y-2">
+                <Label>Accident Location Source</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleFetchThirdPartyLiveLoc}
+                    className="gap-1.5 flex-1"
+                  >
+                    <LocateFixed className="size-4 text-primary" />
+                    Use Live GPS Location
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleOpenMapPicker}
+                    className="gap-1.5 flex-1"
+                  >
+                    <MapIcon className="size-4 text-emerald-400" />
+                    Pick on Map
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="tpLng">Longitude</Label>
-                  <Input
-                    id="tpLng"
-                    type="number"
-                    step="any"
-                    placeholder={location ? String(location.lng) : "77.5946"}
-                    value={tpLng}
-                    onChange={(e) => setTpLng(e.target.value)}
-                  />
-                </div>
+                {tpLocation ? (
+                  <div className="flex items-center justify-between rounded-lg bg-accent/30 p-2.5 text-xs">
+                    <span className="text-emerald-400 font-medium flex items-center gap-1">
+                      <MapPin className="size-3.5" />
+                      Set to: {tpLocation.lat.toFixed(4)}, {tpLocation.lng.toFixed(4)}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setTpLocation(null)}
+                    >
+                      <X className="size-3.5" />
+                    </Button>
+                  </div>
+                ) : location ? (
+                  <p className="text-xs text-muted-foreground">
+                    Default location: Current GPS ({location.lat.toFixed(4)}, {location.lng.toFixed(4)})
+                  </p>
+                ) : null}
               </div>
 
               <Button type="submit" variant="secondary" className="w-full gap-2 font-semibold" disabled={tpSending}>
