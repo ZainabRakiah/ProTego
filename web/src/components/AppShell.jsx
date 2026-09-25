@@ -28,6 +28,8 @@ import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+import { SosButton } from "@/components/SosButton";
+
 /** Re-exported so pages can keep importing Brand from the shell. */
 export function Brand({ className }) {
   return <Logo className={className} />;
@@ -195,9 +197,20 @@ export function AppShell() {
       </div>
 
       {/* ---- Desktop sidebar ---- */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border/70 bg-card px-4 py-5 lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border/70 bg-card px-4 py-4 lg:flex overflow-y-auto">
         <Brand className="px-2" />
-        <Separator className="my-5" />
+        <Separator className="my-3" />
+
+        {/* Desktop Navbar SOS Button */}
+        <div className="mb-3 rounded-xl border border-destructive/30 bg-destructive/10 p-2.5 text-center shadow-sm">
+          <p className="mb-1.5 text-[10px] font-bold tracking-wider text-destructive uppercase">
+            Emergency SOS
+          </p>
+          <div className="flex justify-center">
+            <SosButton size={64} kind="safety" />
+          </div>
+        </div>
+
         <NavItems />
         <div className="mt-auto space-y-3">
           <BackendStatus />

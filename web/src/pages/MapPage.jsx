@@ -320,66 +320,76 @@ export default function MapPage() {
         </Button>
       </header>
 
-      {/* Top Compact Route Planner Header Card */}
-      <Card className="p-3 sm:p-4 border border-border/80 shadow-sm bg-card/95 backdrop-blur">
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
-            <div
-              role="radiogroup"
-              aria-label="Travel mode"
-              className="flex items-center gap-1 rounded-lg border border-border/70 bg-muted/40 p-0.5"
-            >
-              {[
-                { id: "walk", label: "Walk", icon: Footprints },
-                { id: "drive", label: "Drive", icon: Car },
-              ].map(({ id, label, icon: Icon }) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="radio"
-                  aria-checked={travelMode === id}
-                  onClick={() => setTravelMode(id)}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                    travelMode === id
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <Icon className="size-3.5" />
-                  {label}
-                </button>
-              ))}
+      {/* Top Shrunken Route Planner & Desktop SOS Row */}
+      <div className="flex flex-col lg:flex-row items-stretch gap-3">
+        <Card className="flex-1 max-w-2xl p-2.5 sm:p-3 border border-border/80 shadow-sm bg-card/95 backdrop-blur">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-1.5">
+              <div
+                role="radiogroup"
+                aria-label="Travel mode"
+                className="flex items-center gap-1 rounded-lg border border-border/70 bg-muted/40 p-0.5"
+              >
+                {[
+                  { id: "walk", label: "Walk", icon: Footprints },
+                  { id: "drive", label: "Drive", icon: Car },
+                ].map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="radio"
+                    aria-checked={travelMode === id}
+                    onClick={() => setTravelMode(id)}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                      "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                      travelMode === id
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="size-3.5" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[11px] text-muted-foreground font-medium">
+                Safe Route Planner
+              </span>
             </div>
-            <span className="text-xs text-muted-foreground font-medium">
-              Navigation & Waypoints
-            </span>
+
+            <RoutePlanner
+              waypoints={waypoints}
+              onChange={setWaypoints}
+              onSubmit={findRoute}
+              routing={routing}
+              position={position}
+              accuracy={accuracy}
+              geoError={geoError}
+              geoLoading={geoLoading}
+              onRetryLocation={retryLocation}
+            />
+
+            {routeError ? (
+              <p
+                role="alert"
+                className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs text-destructive"
+              >
+                {routeError}
+              </p>
+            ) : null}
+            {geoError ? <p className="text-xs text-muted-foreground">{geoError}</p> : null}
           </div>
+        </Card>
 
-          <RoutePlanner
-            waypoints={waypoints}
-            onChange={setWaypoints}
-            onSubmit={findRoute}
-            routing={routing}
-            position={position}
-            accuracy={accuracy}
-            geoError={geoError}
-            geoLoading={geoLoading}
-            onRetryLocation={retryLocation}
-          />
-
-          {routeError ? (
-            <p
-              role="alert"
-              className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs text-destructive"
-            >
-              {routeError}
-            </p>
-          ) : null}
-          {geoError ? <p className="text-xs text-muted-foreground">{geoError}</p> : null}
+        {/* Desktop SOS Button Beside Route Planner */}
+        <div className="hidden lg:flex flex-col items-center justify-center p-3 rounded-xl border border-destructive/30 bg-card/90 shadow-sm shrink-0 min-w-[130px]">
+          <span className="text-[10px] font-bold text-destructive uppercase tracking-wider mb-1.5">
+            Emergency SOS
+          </span>
+          <SosButton position={position ?? FALLBACK_POSITION} kind="safety" size={72} />
         </div>
-      </Card>
+      </div>
 
       {/* Panel switcher — only meaningful below lg, where panels stack. */}
       <div className="flex gap-1 rounded-lg border border-border/70 bg-muted/40 p-1 lg:hidden">
