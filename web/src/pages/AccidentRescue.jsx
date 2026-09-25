@@ -1,6 +1,16 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Polyline,
+  Popup,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
+import L from "leaflet";
+import {
   Ambulance,
   PhoneCall,
   Navigation,
@@ -16,6 +26,10 @@ import {
   LocateFixed,
   Map as MapIcon,
   X,
+  Compass,
+  Check,
+  Route as RouteIcon,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,8 +37,65 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+
+// Leaflet Map Custom Marker Icons
+function createCustomPin(color = "#3b82f6", label = "") {
+  return L.divIcon({
+    className: "",
+    html: `
+      <div style="
+        background: ${color};
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+      ">${label}</div>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+}
+
+const userPin = createCustomPin("#3b82f6", "YOU");
+const hospitalPin = createCustomPin("#ef4444", "H");
+const bystanderPin = createCustomPin("#f59e0b", "📍");
+
+// Leaflet Map Helpers for Modals
+function MapRefresher() {
+  const map = useMap();
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [map]);
+  return null;
+}
+
+function MapPinPickerHandler({ onSelectLocation }) {
+  useMapEvents({
+    click(e) {
+      onSelectLocation({ lat: e.latlng.lat, lng: e.latlng.lng });
+    },
+  });
+  return null;
+}
 
 export default function AccidentRescue() {
   const navigate = useNavigate();
@@ -48,6 +119,12 @@ export default function AccidentRescue() {
   const [tpLabel, setTpLabel] = React.useState("");
   const [tpLocation, setTpLocation] = React.useState(null);
   const [tpSending, setTpSending] = React.useState(false);
+  const [mapPickerOpen, setMapPickerOpen] = React.useState(false);
+  const [tempPinLocation, setTempPinLocation] = React.useState(null);
+
+  // In-Page Hospital Route Modal state
+  const [selectedHospitalRoute, setSelectedHospitalRoute] = React.useState(null);
+  const [loadingRoute, setLoadingRoute] = React.useState(false);
 
   const fetchLocationAndHospitals = React.useCallback(() => {
     setLoadingLoc(true);
@@ -65,9 +142,9 @@ export default function AccidentRescue() {
       },
       (err) => {
         console.error("Location error:", err);
-        toast.error("Unable to retrieve current GPS location. Using default center.");
+        toast.error("Unable to retrieve current GPS location. Using Bangalore default.");
         setLoadingLoc(false);
-        const defaultCoords = { lat: 12.9716, lng: 77.5946 }; // Bangalore Center
+        const defaultCoords = { lat: 12.9716, lng: 77.5946 };
         setLocation(defaultCoords);
         loadHospitals(defaultCoords.lat, defaultCoords.lng);
       },
@@ -166,7 +243,7 @@ export default function AccidentRescue() {
       (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setTpLocation(coords);
-        if (!tpLabel) setTpLabel("My Current Location");
+        if (!tpLabel) setTpLabel("Live GPS Location");
         toast.success(`Location set: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
       },
       (err) => {
@@ -177,7 +254,16 @@ export default function AccidentRescue() {
   };
 
   const handleOpenMapPicker = () => {
-    navigate("/map");
+    setTempPinLocation(tpLocation || location || { lat: 12.9716, lng: 77.5946 });
+    setMapPickerOpen(true);
+  };
+
+  const handleConfirmMapPin = () => {
+    if (!tempPinLocation) return;
+    setTpLocation(tempPinLocation);
+    if (!tpLabel) setTpLabel("Selected Spot on Map");
+    setMapPickerOpen(false);
+    toast.success(`Location pinned: ${tempPinLocation.lat.toFixed(4)}, ${tempPinLocation.lng.toFixed(4)}`);
   };
 
   const handleThirdPartySubmit = async (e) => {
@@ -202,11 +288,40 @@ export default function AccidentRescue() {
     }
   };
 
-  const handleRouteToHospital = (h) => {
-    const destParam = h.address
-      ? `dest=${encodeURIComponent(h.address)}&destLat=${h.lat}&destLng=${h.lng}`
-      : `destLat=${h.lat}&destLng=${h.lng}`;
-    navigate(`/map?${destParam}`);
+  // In-Page Hospital Fastest Route Handler (NO REDIRECTION)
+  const handleRouteToHospitalInPage = async (h) => {
+    const userPos = location || { lat: 12.9716, lng: 77.5946 };
+    const hospPos = { lat: h.lat, lng: h.lng };
+    setSelectedHospitalRoute({ hospital: h, route: null, loading: true });
+
+    try {
+      const routeRes = await api.safestRoute([userPos, hospPos], { mode: "drive" });
+      setSelectedHospitalRoute({
+        hospital: h,
+        route: routeRes,
+        userPos,
+        hospPos,
+        loading: false,
+      });
+    } catch (err) {
+      console.error("Route calculation error:", err);
+      // Fallback simple straight-line route if server routing is offline
+      const fallbackRoute = {
+        route: [[userPos.lat, userPos.lng], [hospPos.lat, hospPos.lng]],
+        total_km: typeof h.distance_km === "number" ? h.distance_km : 3.5,
+        total_min: typeof h.distance_km === "number" ? Math.round((h.distance_km / 40) * 60) : 8,
+        instructions: [
+          { text: "Proceed directly to " + h.name, distance: typeof h.distance_km === "number" ? h.distance_km * 1000 : 3500 },
+        ],
+      };
+      setSelectedHospitalRoute({
+        hospital: h,
+        route: fallbackRoute,
+        userPos,
+        hospPos,
+        loading: false,
+      });
+    }
   };
 
   return (
@@ -385,11 +500,11 @@ export default function AccidentRescue() {
                       <Button
                         variant="default"
                         size="sm"
-                        onClick={() => handleRouteToHospital(h)}
-                        className="gap-1.5"
+                        onClick={() => handleRouteToHospitalInPage(h)}
+                        className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white"
                       >
                         <Navigation className="size-3.5" />
-                        Route
+                        Fastest Route
                       </Button>
                     </div>
                   </div>
@@ -427,7 +542,7 @@ export default function AccidentRescue() {
 
               {/* Location Selector Actions */}
               <div className="space-y-2">
-                <Label>Accident Location Source</Label>
+                <Label>Accident Spot Selection</Label>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
@@ -446,15 +561,16 @@ export default function AccidentRescue() {
                     onClick={handleOpenMapPicker}
                     className="gap-1.5 flex-1"
                   >
-                    <MapIcon className="size-4 text-emerald-400" />
-                    Pick on Map
+                    <MapIcon className="size-4 text-amber-400" />
+                    Drop Pin on Map
                   </Button>
                 </div>
+
                 {tpLocation ? (
-                  <div className="flex items-center justify-between rounded-lg bg-accent/30 p-2.5 text-xs">
-                    <span className="text-emerald-400 font-medium flex items-center gap-1">
-                      <MapPin className="size-3.5" />
-                      Set to: {tpLocation.lat.toFixed(4)}, {tpLocation.lng.toFixed(4)}
+                  <div className="flex items-center justify-between rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-2.5 text-xs">
+                    <span className="text-emerald-400 font-medium flex items-center gap-1.5">
+                      <MapPin className="size-4 text-emerald-400" />
+                      Pinned Spot: {tpLocation.lat.toFixed(4)}, {tpLocation.lng.toFixed(4)}
                     </span>
                     <Button
                       type="button"
@@ -467,7 +583,7 @@ export default function AccidentRescue() {
                   </div>
                 ) : location ? (
                   <p className="text-xs text-muted-foreground">
-                    Default location: Current GPS ({location.lat.toFixed(4)}, {location.lng.toFixed(4)})
+                    Current Location: GPS ({location.lat.toFixed(4)}, {location.lng.toFixed(4)})
                   </p>
                 ) : null}
               </div>
@@ -519,6 +635,174 @@ export default function AccidentRescue() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ----------------- IN-PAGE MAP PIN PICKER MODAL ----------------- */}
+      <Dialog open={mapPickerOpen} onOpenChange={setMapPickerOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-400">
+              <MapPin className="size-5" />
+              Drop Emergency Pin on Map
+            </DialogTitle>
+            <DialogDescription>
+              Click anywhere on the map below to set the exact accident location.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="relative h-80 w-full overflow-hidden rounded-xl border border-border">
+            {mapPickerOpen && tempPinLocation && (
+              <MapContainer
+                center={[tempPinLocation.lat, tempPinLocation.lng]}
+                zoom={14}
+                className="h-full w-full"
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <MapRefresher />
+                <MapPinPickerHandler onSelectLocation={setTempPinLocation} />
+                <Marker position={[tempPinLocation.lat, tempPinLocation.lng]} icon={bystanderPin}>
+                  <Popup>Accident Spot</Popup>
+                </Marker>
+              </MapContainer>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xs font-mono text-muted-foreground">
+              📍 Pin: {tempPinLocation?.lat.toFixed(5)}, {tempPinLocation?.lng.toFixed(5)}
+            </span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setMapPickerOpen(false)}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleConfirmMapPin} className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold">
+                <Check className="size-4" />
+                Confirm Location Pin
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ----------------- IN-PAGE FASTEST HOSPITAL ROUTE MODAL ----------------- */}
+      <Dialog open={Boolean(selectedHospitalRoute)} onOpenChange={(v) => !v && setSelectedHospitalRoute(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-primary">
+              <Ambulance className="size-5 text-red-500" />
+              Fastest Route: {selectedHospitalRoute?.hospital?.name}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedHospitalRoute?.hospital?.address || "Emergency Navigation Guidance"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedHospitalRoute?.loading ? (
+            <div className="py-16 text-center space-y-3">
+              <Loader2 className="size-8 animate-spin mx-auto text-primary" />
+              <p className="text-sm text-muted-foreground">Calculating fastest emergency route...</p>
+            </div>
+          ) : selectedHospitalRoute?.route ? (
+            <div className="space-y-4">
+              {/* Route Summary Stats Bar */}
+              <div className="grid grid-cols-3 gap-3 p-3 rounded-lg bg-accent/30 border border-border text-center text-xs">
+                <div>
+                  <p className="text-muted-foreground">Travel Distance</p>
+                  <p className="text-base font-bold text-foreground">
+                    {selectedHospitalRoute.route.total_km ? `${selectedHospitalRoute.route.total_km.toFixed(1)} km` : "--"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Estimated Time (ETA)</p>
+                  <p className="text-base font-bold text-emerald-400">
+                    {selectedHospitalRoute.route.total_min ? `${Math.round(selectedHospitalRoute.route.total_min)} mins` : "--"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Route Mode</p>
+                  <Badge variant="outline" className="mt-0.5 bg-blue-500/10 text-blue-400 border-blue-500/30">
+                    Fastest Driving
+                  </Badge>
+                </div>
+              </div>
+
+              {/* In-Page Route Map Container */}
+              <div className="relative h-72 w-full overflow-hidden rounded-xl border border-border">
+                <MapContainer
+                  center={[selectedHospitalRoute.userPos.lat, selectedHospitalRoute.userPos.lng]}
+                  zoom={13}
+                  className="h-full w-full"
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <MapRefresher />
+                  {/* Start Marker */}
+                  <Marker position={[selectedHospitalRoute.userPos.lat, selectedHospitalRoute.userPos.lng]} icon={userPin}>
+                    <Popup>Your Location</Popup>
+                  </Marker>
+                  {/* Destination Hospital Marker */}
+                  <Marker position={[selectedHospitalRoute.hospPos.lat, selectedHospitalRoute.hospPos.lng]} icon={hospitalPin}>
+                    <Popup>{selectedHospitalRoute.hospital.name}</Popup>
+                  </Marker>
+                  {/* Route Polyline */}
+                  {selectedHospitalRoute.route.route && (
+                    <Polyline
+                      positions={
+                        Array.isArray(selectedHospitalRoute.route.route[0])
+                          ? selectedHospitalRoute.route.route
+                          : selectedHospitalRoute.route.route.map((pt) => [pt.lat, pt.lng])
+                      }
+                      pathOptions={{ color: "#2563eb", weight: 5, opacity: 0.9 }}
+                    />
+                  )}
+                </MapContainer>
+              </div>
+
+              {/* Turn-by-Turn Maneuvers List */}
+              {selectedHospitalRoute.route.instructions && selectedHospitalRoute.route.instructions.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                    <Compass className="size-3.5 text-primary" />
+                    Turn-by-Turn Emergency Directions
+                  </h4>
+                  <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                    {selectedHospitalRoute.route.instructions.map((inst, i) => (
+                      <div key={i} className="flex items-center gap-2 p-2 rounded bg-card/60 border border-border text-xs">
+                        <RouteIcon className="size-3.5 shrink-0 text-primary" />
+                        <span className="flex-1 truncate">{inst.text || inst.instruction || "Proceed straight"}</span>
+                        {inst.distance && (
+                          <span className="text-muted-foreground text-[10px]">
+                            {inst.distance > 1000 ? `${(inst.distance / 1000).toFixed(1)}km` : `${Math.round(inst.distance)}m`}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Footer Modal Actions */}
+              <div className="flex items-center justify-between pt-2">
+                {selectedHospitalRoute.hospital.phone ? (
+                  <Button variant="outline" size="sm" asChild className="gap-1.5">
+                    <a href={`tel:${selectedHospitalRoute.hospital.phone}`}>
+                      <PhoneCall className="size-4 text-emerald-400" />
+                      Call Emergency Desk ({selectedHospitalRoute.hospital.phone})
+                    </a>
+                  </Button>
+                ) : <div />}
+                <Button variant="secondary" size="sm" onClick={() => setSelectedHospitalRoute(null)}>
+                  Close Navigation
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

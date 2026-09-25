@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 
 /**
- * Camera sheet with manual capture & 10-second interval auto-capture support.
+ * Camera sheet with manual capture & 5-second interval auto-capture support.
  */
 export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode = false }) {
   const videoRef = React.useRef(null);
@@ -23,9 +23,9 @@ export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode =
   const [shot, setShot] = React.useState(null);
   const [error, setError] = React.useState(null);
 
-  // 10-second auto capture states
+  // 5-second auto capture states
   const [isAutoActive, setIsAutoActive] = React.useState(initialAutoMode);
-  const [countdown, setCountdown] = React.useState(10);
+  const [countdown, setCountdown] = React.useState(5);
   const [autoCount, setAutoCount] = React.useState(0);
 
   const onCaptureRef = React.useRef(onCapture);
@@ -50,7 +50,7 @@ export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode =
       setShot(null);
       setError(null);
       setIsAutoActive(false);
-      setCountdown(10);
+      setCountdown(5);
       setAutoCount(0);
       return;
     }
@@ -99,11 +99,11 @@ export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode =
     return canvas.toDataURL("image/jpeg", 0.82);
   }, []);
 
-  // 10-Second Auto-Capture Loop
+  // 5-Second Auto-Capture Loop
   React.useEffect(() => {
     if (!open || !isAutoActive || error) return;
 
-    setCountdown(10);
+    setCountdown(5);
     const interval = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -113,7 +113,7 @@ export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode =
             onCaptureRef.current(dataUrl, "AUTO");
             setAutoCount((c) => c + 1);
           }
-          return 10;
+          return 5;
         }
         return prev - 1;
       });
@@ -150,7 +150,7 @@ export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode =
             {isAutoActive && (
               <Badge variant="outline" className="bg-red-500/10 border-red-500/40 text-red-400 gap-1.5 animate-pulse">
                 <Timer className="size-3.5" />
-                10s Auto-Capture ({countdown}s) • Saved: {autoCount}
+                5s Auto-Capture ({countdown}s) • Saved: {autoCount}
               </Badge>
             )}
           </DialogTitle>
@@ -211,12 +211,12 @@ export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode =
                 {isAutoActive ? (
                   <>
                     <Square className="size-4" />
-                    Stop 10s Auto
+                    Stop 5s Auto
                   </>
                 ) : (
                   <>
                     <Play className="size-4" />
-                    Start 10s Auto
+                    Start 5s Auto
                   </>
                 )}
               </Button>

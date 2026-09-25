@@ -63,7 +63,7 @@ export default function Evidence() {
         finalType === "SOS"
           ? "SOS evidence saved"
           : finalType === "AUTO_CAPTURE"
-          ? "10s Auto-captured photo saved to vault"
+          ? "5s Auto-captured photo saved to vault"
           : "Evidence saved to your vault",
       );
       load();
@@ -111,7 +111,7 @@ export default function Evidence() {
             disabled={saving}
           >
             <Timer className="size-4 text-red-500" />
-            10s Auto-Capture
+            5s Auto-Capture
           </Button>
           <Button
             variant="destructive"
@@ -173,7 +173,7 @@ export default function Evidence() {
                 ) : item.type === "AUTO_CAPTURE" || item.type === "AUTO" ? (
                   <Badge variant="outline" className="absolute top-2 left-2 backdrop-blur-sm bg-red-500/20 text-red-300 border-red-500/40 gap-1 text-[10px]">
                     <Timer className="size-3" />
-                    AUTO 10s
+                    AUTO 5s
                   </Badge>
                 ) : null}
               </button>
