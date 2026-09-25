@@ -320,11 +320,11 @@ export default function MapPage() {
         </Button>
       </header>
 
-      {/* Top Shrunken Route Planner & Desktop SOS Row */}
-      <div className="flex flex-col lg:flex-row items-stretch gap-3">
-        <Card className="flex-1 max-w-2xl p-2.5 sm:p-3 border border-border/80 shadow-sm bg-card/95 backdrop-blur">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-1.5">
+      {/* Top Route Planner & SOS Row (Occupies Full Screen Width) */}
+      <div className="flex flex-col sm:flex-row items-stretch gap-3 w-full">
+        <Card className="flex-1 min-w-0 p-3 sm:p-4 border border-border/80 shadow-sm bg-card/95 backdrop-blur">
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-2">
               <div
                 role="radiogroup"
                 aria-label="Travel mode"
@@ -382,13 +382,13 @@ export default function MapPage() {
           </div>
         </Card>
 
-        {/* Desktop SOS Button Beside Route Planner */}
-        <div className="hidden lg:flex flex-col items-center justify-center p-3 rounded-xl border border-destructive/30 bg-card/90 shadow-sm shrink-0 min-w-[130px]">
+        {/* Top-Right Emergency SOS Card */}
+        <Card className="shrink-0 w-full sm:w-64 min-w-[200px] flex flex-col items-center justify-center p-3 border border-destructive/30 bg-card/95 shadow-sm">
           <span className="text-[10px] font-bold text-destructive uppercase tracking-wider mb-1.5">
             Emergency SOS
           </span>
-          <SosButton position={position ?? FALLBACK_POSITION} kind="safety" size={72} />
-        </div>
+          <SosButton position={position ?? FALLBACK_POSITION} kind="safety" size={76} />
+        </Card>
       </div>
 
       {/* Panel switcher — only meaningful below lg, where panels stack. */}
@@ -396,7 +396,6 @@ export default function MapPage() {
         {[
           { id: "route", label: "Summary", icon: RouteIcon },
           { id: "area", label: "Area Details", icon: Compass },
-          { id: "sos", label: "SOS", icon: ShieldCheck },
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -551,14 +550,6 @@ export default function MapPage() {
 
           <div className={cn(panel === "area" ? "block" : "hidden", "lg:block")}>
             <AreaPanel position={placedStops.at(-1) ?? position ?? FALLBACK_POSITION} />
-          </div>
-
-          <div className={cn(panel === "sos" ? "block" : "hidden", "lg:block")}>
-            <Card>
-              <CardContent className="flex flex-col items-center py-6">
-                <SosButton position={position ?? FALLBACK_POSITION} kind="safety" size={116} />
-              </CardContent>
-            </Card>
           </div>
         </div>
 

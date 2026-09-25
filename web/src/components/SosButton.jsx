@@ -90,14 +90,16 @@ export function SosButton({ position, kind = "safety", className, size = 132 }) 
 
   const busy = status !== "idle";
 
+  const isCompact = size < 90;
+
   return (
-    <div className={cn("flex flex-col items-center gap-3", className)}>
+    <div className={cn("flex flex-col items-center gap-2", className)}>
       <div className="relative grid place-items-center" style={{ width: size, height: size }}>
         {/* Idle halo — stops once a hold begins so the ring reads as progress. */}
         {status === "idle" && progress === 0 ? (
           <span
             aria-hidden
-            className="animate-pulse-ring absolute inset-2 rounded-full bg-destructive/30"
+            className="animate-pulse-ring absolute inset-1.5 rounded-full bg-destructive/30"
           />
         ) : null}
 
@@ -143,36 +145,37 @@ export function SosButton({ position, kind = "safety", className, size = 132 }) 
           }}
           aria-label={`Send ${kind === "accident" ? "accident" : "safety"} SOS`}
           className={cn(
-            "relative grid select-none place-items-center rounded-full text-destructive-foreground cursor-pointer",
+            "relative grid select-none place-items-center rounded-full text-destructive-foreground cursor-pointer transition-all duration-150",
             "bg-gradient-to-b from-[oklch(0.7_0.22_25)] to-[oklch(0.55_0.22_25)]",
-            "shadow-[0_10px_36px_-10px_oklch(0.6_0.22_25/0.85)]",
-            "transition-transform duration-150 active:scale-95",
-            "focus-visible:ring-4 focus-visible:ring-destructive/40 focus-visible:outline-none",
+            "shadow-[0_8px_24px_-6px_oklch(0.6_0.22_25/0.8)]",
+            "active:scale-95 focus-visible:ring-4 focus-visible:ring-destructive/40 focus-visible:outline-none",
             "disabled:cursor-not-allowed",
           )}
-          style={{ width: size - 26, height: size - 26 }}
+          style={{ width: size - 20, height: size - 20 }}
         >
           {status === "sending" ? (
-            <Loader2 className="size-8 animate-spin" />
+            <Loader2 className={cn(isCompact ? "size-5" : "size-7", "animate-spin")} />
           ) : status === "sent" ? (
-            <Check className="size-9" />
+            <Check className={cn(isCompact ? "size-6" : "size-8")} />
           ) : (
-            <span className="flex flex-col items-center gap-0.5">
-              <ShieldAlert className="size-7" />
-              <span className="text-lg font-bold tracking-wider">SOS</span>
+            <span className="flex flex-col items-center justify-center leading-none">
+              <ShieldAlert className={cn(isCompact ? "size-4 mb-0.5" : "size-6 mb-1")} />
+              <span className={cn(isCompact ? "text-xs font-black" : "text-base font-black", "tracking-wider")}>
+                SOS
+              </span>
             </span>
           )}
         </button>
       </div>
 
-      <p className="text-center text-xs text-muted-foreground" aria-live="polite">
+      <p className="text-center text-[11px] font-medium text-muted-foreground" aria-live="polite">
         {status === "sending"
-          ? "Sending emergency alert…"
+          ? "Sending alert…"
           : status === "sent"
-            ? "Alert auto-dispatched & logged"
+            ? "Alert dispatched"
             : progress > 0
               ? "Keep holding…"
-              : "Click or hold to send SOS"}
+              : "Click/hold for SOS"}
       </p>
     </div>
   );

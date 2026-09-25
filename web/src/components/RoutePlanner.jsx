@@ -92,21 +92,6 @@ export function RoutePlanner({
 
           return (
             <li key={wp.id} className="relative flex gap-2.5 min-w-0">
-              {/* Rail badge icon */}
-              <div className="flex flex-col items-center pt-7">
-                <span
-                  aria-hidden
-                  className={cn(
-                    "grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-semibold",
-                    role === "start" && "bg-primary text-primary-foreground",
-                    role === "end" && "bg-destructive text-destructive-foreground",
-                    role === "stop" && "border border-border bg-card text-muted-foreground",
-                  )}
-                >
-                  {glyph}
-                </span>
-              </div>
-
               <div className="min-w-0 flex-1 pb-1">
                 {wp.live ? (
                   <>
