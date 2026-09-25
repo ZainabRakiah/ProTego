@@ -372,10 +372,10 @@ export default function AccidentRescue() {
       )}
 
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-xl border border-red-500/30 bg-gradient-to-r from-red-950/40 via-card to-card p-6 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-xl border border-border/70 bg-card p-5 sm:p-6 shadow-sm">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-red-500/20 text-red-500">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-destructive/10 text-destructive dark:bg-destructive/20">
               <Ambulance className="size-5" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight">Accident Rescue & Hospital Alerting</h1>
@@ -399,9 +399,9 @@ export default function AccidentRescue() {
       {/* Main Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* SOS Emergency Dispatch Button Card */}
-        <Card className="lg:col-span-1 border-red-500/40 bg-card/90 shadow-md flex flex-col justify-between">
+        <Card className="lg:col-span-1 border border-border/70 bg-card shadow-sm flex flex-col justify-between">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-500 text-lg">
+            <CardTitle className="flex items-center gap-2 text-destructive text-lg">
               <ShieldAlert className="size-5" />
               Instant Accident SOS
             </CardTitle>
@@ -413,9 +413,9 @@ export default function AccidentRescue() {
             <button
               onClick={startSosCountdown}
               disabled={sosActive || sosSending}
-              className="group relative flex size-36 items-center justify-center rounded-full bg-gradient-to-br from-red-600 to-red-800 text-white font-extrabold text-2xl shadow-xl hover:scale-105 active:scale-95 transition-transform border-4 border-red-400/50 cursor-pointer"
+              className="group relative flex size-36 items-center justify-center rounded-full bg-gradient-to-br from-destructive to-red-700 text-white font-extrabold text-2xl shadow-xl hover:scale-105 active:scale-95 transition-transform border-4 border-red-400/30 cursor-pointer"
             >
-              <div className="absolute inset-0 rounded-full bg-red-500/30 animate-ping" />
+              <div className="absolute inset-0 rounded-full bg-destructive/20 animate-ping" />
               <div className="relative flex flex-col items-center gap-1">
                 <Radio className="size-8 animate-pulse" />
                 <span>RESCUE</span>
@@ -430,7 +430,7 @@ export default function AccidentRescue() {
         </Card>
 
         {/* 3 Nearest Hospitals Section */}
-        <Card className="lg:col-span-2 shadow-md">
+        <Card className="lg:col-span-2 shadow-sm border border-border/70">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -443,8 +443,8 @@ export default function AccidentRescue() {
                   : "Fetching your GPS coordinates..."}
               </CardDescription>
             </div>
-            <Badge variant="outline" className="gap-1 border-emerald-500/40 text-emerald-400">
-              <Radio className="size-3 animate-pulse text-emerald-400" />
+            <Badge variant="outline" className="gap-1 border-emerald-500/40 text-emerald-500 dark:text-emerald-400">
+              <Radio className="size-3 animate-pulse text-emerald-500 dark:text-emerald-400" />
               Live Alert System
             </Badge>
           </CardHeader>
@@ -463,7 +463,7 @@ export default function AccidentRescue() {
                 {hospitals.map((h, i) => (
                   <div
                     key={h.id || i}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border border-border bg-accent/20 hover:bg-accent/40 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border border-border/60 bg-background/50 hover:bg-muted/40 transition-colors"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">

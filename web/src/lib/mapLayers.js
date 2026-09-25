@@ -13,10 +13,10 @@ export const MAP_LAYERS = [
     label: "Street",
     description: "Standard road map",
     icon: Map,
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
     maxZoom: 19,
-    invertInDark: true,
+    invertInDark: false,
   },
   {
     id: "geographic",
@@ -28,7 +28,7 @@ export const MAP_LAYERS = [
       'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, ' +
       '<a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)',
     maxZoom: 17,
-    invertInDark: true,
+    invertInDark: false,
   },
   {
     id: "satellite",
@@ -58,4 +58,13 @@ export const DEFAULT_LAYER_ID = "street";
 
 export function getLayer(id) {
   return MAP_LAYERS.find((l) => l.id === id) ?? MAP_LAYERS[0];
+}
+
+export function getActiveTileUrl(layer, isDark = false) {
+  if (layer.id === "street") {
+    return isDark
+      ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+      : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+  }
+  return layer.url;
 }

@@ -50,32 +50,32 @@
 }
 
 .dark {
-  --background: #1B2D3A;
-  --foreground: #F4FCFB;
-  --card: #243C4C;
-  --card-foreground: #F4FCFB;
-  --popover: #243C4C;
-  --popover-foreground: #F4FCFB;
-  --primary: #5289AD;
-  --primary-foreground: #F4FCFB;
-  --secondary: #2C475A;
-  --secondary-foreground: #F4FCFB;
-  --muted: #294151;
-  --muted-foreground: #ACBCBF;
-  --accent: #335063;
-  --accent-foreground: #F4FCFB;
+  --background: oklch(0.145 0.023 282);
+  --foreground: oklch(0.965 0.005 282);
+  --card: oklch(0.198 0.026 282);
+  --card-foreground: oklch(0.965 0.005 282);
+  --popover: oklch(0.212 0.028 282);
+  --popover-foreground: oklch(0.965 0.005 282);
+  --primary: oklch(0.7 0.185 292);
+  --primary-foreground: oklch(0.155 0.03 292);
+  --secondary: oklch(0.268 0.028 282);
+  --secondary-foreground: oklch(0.965 0.005 282);
+  --muted: oklch(0.262 0.026 282);
+  --muted-foreground: oklch(0.735 0.028 282);
+  --accent: oklch(0.315 0.058 292);
+  --accent-foreground: oklch(0.95 0.03 292);
   --destructive: oklch(0.655 0.225 22);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: rgba(105, 134, 150, 0.4);
-  --input: rgba(105, 134, 150, 0.4);
-  --ring: #5289AD;
+  --border: oklch(1 0 0 / 0.11);
+  --input: oklch(1 0 0 / 0.14);
+  --ring: oklch(0.7 0.185 292);
 
   --safe: oklch(0.79 0.175 158);
   --caution: oklch(0.845 0.155 84);
   --risk: oklch(0.695 0.21 22);
 
-  --surface-glow: rgba(82, 137, 173, 0.25);
-  --shadow-color: 204 40% 5%;
+  --surface-glow: oklch(0.7 0.185 292 / 0.22);
+  --shadow-color: 282 60% 3%;
 }
 
 /*
@@ -207,8 +207,7 @@
     background-color: var(--background);
     color: var(--foreground);
     font-family:
-      "Inter var", "Inter", ui-sans-serif, system-ui, -apple-system,
-      "Segoe UI", Roboto, sans-serif;
+      system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "ss01";
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
