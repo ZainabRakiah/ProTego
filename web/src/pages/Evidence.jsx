@@ -1,5 +1,4 @@
-import * as React from "react";
-import { Camera, Trash2, ShieldAlert, Loader2, Image as ImageIcon, Download } from "lucide-react";
+import { Camera, Trash2, ShieldAlert, Loader2, Image as ImageIcon, Download, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +19,7 @@ export default function Evidence() {
   const [error, setError] = React.useState(null);
   const [cameraOpen, setCameraOpen] = React.useState(false);
   const [pendingType, setPendingType] = React.useState("NORMAL");
+  const [initialAutoMode, setInitialAutoMode] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [preview, setPreview] = React.useState(null);
 
@@ -38,13 +38,15 @@ export default function Evidence() {
     load();
   }, [load]);
 
-  function startCapture(type) {
+  function startCapture(type, auto = false) {
     setPendingType(type);
+    setInitialAutoMode(auto);
     setCameraOpen(true);
   }
 
-  async function onCapture(dataUrl) {
+  async function onCapture(dataUrl, captureType) {
     const p = position ?? FALLBACK_POSITION;
+    const finalType = captureType === "AUTO" ? "AUTO_CAPTURE" : (pendingType || "NORMAL");
     setSaving(true);
     try {
       await api.saveEvidence({
@@ -53,11 +55,15 @@ export default function Evidence() {
         lat: p.lat,
         lng: p.lng,
         accuracy: accuracy ?? null,
-        type: pendingType,
+        type: finalType,
         timestamp: Math.floor(Date.now() / 1000),
       });
       toast.success(
-        pendingType === "SOS" ? "SOS evidence saved" : "Evidence saved to your vault",
+        finalType === "SOS"
+          ? "SOS evidence saved"
+          : finalType === "AUTO_CAPTURE"
+          ? "10s Auto-captured photo saved to vault"
+          : "Evidence saved to your vault",
       );
       load();
     } catch (err) {
@@ -87,20 +93,29 @@ export default function Evidence() {
             Photos stamped with the time, your coordinates and GPS accuracy.
           </p>
         </div>
-        <div className="flex w-full gap-2 sm:w-auto">
+        <div className="flex flex-wrap w-full gap-2 sm:w-auto">
           <Button
             variant="outline"
             className="flex-1 sm:flex-none"
-            onClick={() => startCapture("NORMAL")}
+            onClick={() => startCapture("NORMAL", false)}
             disabled={saving}
           >
             {saving ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
             Capture
           </Button>
           <Button
+            variant="secondary"
+            className="flex-1 sm:flex-none border border-red-500/30 text-foreground"
+            onClick={() => startCapture("AUTO_CAPTURE", true)}
+            disabled={saving}
+          >
+            <Timer className="size-4 text-red-500" />
+            10s Auto-Capture
+          </Button>
+          <Button
             variant="destructive"
             className="flex-1 sm:flex-none"
-            onClick={() => startCapture("SOS")}
+            onClick={() => startCapture("SOS", false)}
             disabled={saving}
           >
             <ShieldAlert className="size-4" />
@@ -154,6 +169,11 @@ export default function Evidence() {
                     <ShieldAlert />
                     SOS
                   </Badge>
+                ) : item.type === "AUTO_CAPTURE" || item.type === "AUTO" ? (
+                  <Badge variant="outline" className="absolute top-2 left-2 backdrop-blur-sm bg-red-500/20 text-red-300 border-red-500/40 gap-1 text-[10px]">
+                    <Timer className="size-3" />
+                    AUTO 10s
+                  </Badge>
                 ) : null}
               </button>
 
@@ -175,14 +195,25 @@ export default function Evidence() {
         </div>
       )}
 
-      <CameraCapture open={cameraOpen} onOpenChange={setCameraOpen} onCapture={onCapture} />
+      <CameraCapture
+        open={cameraOpen}
+        onOpenChange={setCameraOpen}
+        onCapture={onCapture}
+        initialAutoMode={initialAutoMode}
+      />
 
       <Dialog open={Boolean(preview)} onOpenChange={(v) => !v && setPreview(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               Evidence
-              {preview?.type === "SOS" ? <Badge variant="risk">SOS</Badge> : null}
+              {preview?.type === "SOS" ? (
+                <Badge variant="risk">SOS</Badge>
+              ) : preview?.type === "AUTO_CAPTURE" || preview?.type === "AUTO" ? (
+                <Badge variant="outline" className="bg-red-500/20 text-red-300 border-red-500/40">
+                  Auto-Captured (10s)
+                </Badge>
+              ) : null}
             </DialogTitle>
             <CardDescription className="tnum">{formatTime(preview?.timestamp)}</CardDescription>
           </DialogHeader>
