@@ -85,15 +85,14 @@ export function RoutePlanner({
 
   return (
     <form onSubmit={onSubmit} className={cn("space-y-3", className)}>
-      <ol className="space-y-2">
+      <ol className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {waypoints.map((wp, index) => {
           const role = roleOf(index, total);
           const glyph = role === "start" ? "A" : role === "end" ? "B" : String(index);
-          const isLast = index === total - 1;
 
           return (
-            <li key={wp.id} className="relative flex gap-2.5">
-              {/* Rail: marker badge plus the connector down to the next row. */}
+            <li key={wp.id} className="relative flex gap-2.5 min-w-0">
+              {/* Rail badge icon */}
               <div className="flex flex-col items-center pt-7">
                 <span
                   aria-hidden
@@ -106,12 +105,6 @@ export function RoutePlanner({
                 >
                   {glyph}
                 </span>
-                {!isLast ? (
-                  <span
-                    aria-hidden
-                    className="mt-1 w-px flex-1 border-l border-dashed border-border"
-                  />
-                ) : null}
               </div>
 
               <div className="min-w-0 flex-1 pb-1">
@@ -128,48 +121,48 @@ export function RoutePlanner({
                     />
                   </>
                 ) : (
-                <PlaceSearch
-                  id={`wp-${wp.id}`}
-                  label={
-                    role === "stop" ? `${ROLE_LABEL.stop} ${index}` : ROLE_LABEL[role]
-                  }
-                  icon={role === "start" ? Crosshair : Search}
-                  value={wp.text}
-                  onChange={(text) => patchAt(index, { text, point: null })}
-                  onPick={(r) =>
-                    patchAt(index, { text: r.label, point: { lat: r.lat, lng: r.lng } })
-                  }
-                  placeholder={
-                    role === "start"
-                      ? hasCurrentPosition
-                        ? "Current location"
-                        : "Search a starting point"
-                      : role === "end"
-                        ? "Where are you heading?"
-                        : "Somewhere along the way"
-                  }
-                  trailing={
-                    wp.text || role === "stop" ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={
-                          role === "stop"
-                            ? `Remove stop ${index}`
-                            : `Clear ${ROLE_LABEL[role].toLowerCase()}`
-                        }
-                        onClick={() =>
-                          role === "stop"
-                            ? removeAt(index)
-                            : patchAt(index, { text: "", point: null })
-                        }
-                      >
-                        <X className="size-3.5" />
-                      </Button>
-                    ) : null
-                  }
-                />
+                  <PlaceSearch
+                    id={`wp-${wp.id}`}
+                    label={
+                      role === "stop" ? `${ROLE_LABEL.stop} ${index}` : ROLE_LABEL[role]
+                    }
+                    icon={role === "start" ? Crosshair : Search}
+                    value={wp.text}
+                    onChange={(text) => patchAt(index, { text, point: null })}
+                    onPick={(r) =>
+                      patchAt(index, { text: r.label, point: { lat: r.lat, lng: r.lng } })
+                    }
+                    placeholder={
+                      role === "start"
+                        ? hasCurrentPosition
+                          ? "Current location"
+                          : "Search a starting point"
+                        : role === "end"
+                          ? "Where are you heading?"
+                          : "Somewhere along the way"
+                    }
+                    trailing={
+                      wp.text || role === "stop" ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={
+                            role === "stop"
+                              ? `Remove stop ${index}`
+                              : `Clear ${ROLE_LABEL[role].toLowerCase()}`
+                          }
+                          onClick={() =>
+                            role === "stop"
+                              ? removeAt(index)
+                              : patchAt(index, { text: "", point: null })
+                          }
+                        >
+                          <X className="size-3.5" />
+                        </Button>
+                      ) : null
+                    }
+                  />
                 )}
 
                 {/* Any row can be pinned to the live position, not just the start. */}

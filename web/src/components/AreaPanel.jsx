@@ -143,6 +143,15 @@ export function AreaPanel({ position }) {
             Scored as {f.is_night ? "night-time" : "daytime"} conditions.
           </p>
         ) : null}
+
+        {f.lamp_count_500m === 0 &&
+        f.camera_count_500m === 0 &&
+        f.police_count_500m === 0 &&
+        !loading ? (
+          <p className="text-[11px] leading-relaxed text-muted-foreground/90 bg-muted/40 p-2.5 rounded-md border border-border/50">
+            ℹ️ <strong>Baseline Score 45 (Caution):</strong> No street lamps, cameras, or police stations detected within 500 m of this exact point. Areas lacking safety infrastructure default to a 45 Caution score.
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );
