@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Map as MapIcon,
+  Ambulance,
   FileWarning,
   Users,
   Camera,
@@ -29,6 +30,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/map", label: "Safe route", icon: MapIcon },
+  { to: "/accident", label: "Accident rescue", icon: Ambulance },
   { to: "/report", label: "Report", icon: FileWarning },
   { to: "/contacts", label: "Trusted circle", icon: Users },
   { to: "/evidence", label: "Evidence vault", icon: Camera },
