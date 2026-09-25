@@ -12,65 +12,70 @@
   little of it, so greys read as "night" rather than as dead concrete. Accent
   hues sit either side — 292 for brand violet, 224 for the cool secondary.
 */
+/*
+  ProTego Theme System:
+  - Light mode: Graphite combinations (#F5E9E7, #C1C0C2, #837D68, #8A9DB1, #ECC5C6)
+  - Dark mode: Arctic reflection (#5289AD, #243C4C, #ACBCBF, #F4FCFB, #698696)
+*/
 :root {
   --radius: 0.85rem;
 
-  --background: oklch(0.985 0.003 282);
-  --foreground: oklch(0.2 0.022 282);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.022 282);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.022 282);
-  --primary: oklch(0.54 0.215 292);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.955 0.008 282);
-  --secondary-foreground: oklch(0.28 0.024 282);
-  --muted: oklch(0.955 0.008 282);
-  --muted-foreground: oklch(0.505 0.022 282);
-  --accent: oklch(0.945 0.028 292);
-  --accent-foreground: oklch(0.32 0.075 292);
+  --background: #F5E9E7;
+  --foreground: #23272A;
+  --card: #FFFFFF;
+  --card-foreground: #23272A;
+  --popover: #FFFFFF;
+  --popover-foreground: #23272A;
+  --primary: #8A9DB1;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EBE5E4;
+  --secondary-foreground: #23272A;
+  --muted: #EBE5E4;
+  --muted-foreground: #736E5C;
+  --accent: #ECC5C6;
+  --accent-foreground: #382526;
   --destructive: oklch(0.575 0.235 25);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.895 0.012 282);
-  --input: oklch(0.895 0.012 282);
-  --ring: oklch(0.54 0.215 292);
+  --border: #C1C0C2;
+  --input: #C1C0C2;
+  --ring: #8A9DB1;
 
-  /* Safety scale — used by the meter, the route legend and the grid overlay. */
+  /* Safety scale */
   --safe: oklch(0.66 0.16 156);
   --caution: oklch(0.72 0.155 72);
   --risk: oklch(0.585 0.225 22);
 
-  --surface-glow: oklch(0.54 0.215 292 / 0.13);
-  --shadow-color: 282 30% 12%;
+  --surface-glow: rgba(138, 157, 177, 0.2);
+  --shadow-color: 215 15% 20%;
 }
 
 .dark {
-  --background: oklch(0.145 0.023 282);
-  --foreground: oklch(0.965 0.005 282);
-  --card: oklch(0.198 0.026 282);
-  --card-foreground: oklch(0.965 0.005 282);
-  --popover: oklch(0.212 0.028 282);
-  --popover-foreground: oklch(0.965 0.005 282);
-  --primary: oklch(0.7 0.185 292);
-  --primary-foreground: oklch(0.155 0.03 292);
-  --secondary: oklch(0.268 0.028 282);
-  --secondary-foreground: oklch(0.965 0.005 282);
-  --muted: oklch(0.262 0.026 282);
-  --muted-foreground: oklch(0.735 0.028 282);
-  --accent: oklch(0.315 0.058 292);
-  --accent-foreground: oklch(0.95 0.03 292);
+  --background: #1B2D3A;
+  --foreground: #F4FCFB;
+  --card: #243C4C;
+  --card-foreground: #F4FCFB;
+  --popover: #243C4C;
+  --popover-foreground: #F4FCFB;
+  --primary: #5289AD;
+  --primary-foreground: #F4FCFB;
+  --secondary: #2C475A;
+  --secondary-foreground: #F4FCFB;
+  --muted: #294151;
+  --muted-foreground: #ACBCBF;
+  --accent: #335063;
+  --accent-foreground: #F4FCFB;
   --destructive: oklch(0.655 0.225 22);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(1 0 0 / 0.11);
-  --input: oklch(1 0 0 / 0.14);
-  --ring: oklch(0.7 0.185 292);
+  --border: rgba(105, 134, 150, 0.4);
+  --input: rgba(105, 134, 150, 0.4);
+  --ring: #5289AD;
 
   --safe: oklch(0.79 0.175 158);
   --caution: oklch(0.845 0.155 84);
   --risk: oklch(0.695 0.21 22);
 
-  --surface-glow: oklch(0.7 0.185 292 / 0.22);
-  --shadow-color: 282 60% 3%;
+  --surface-glow: rgba(82, 137, 173, 0.25);
+  --shadow-color: 204 40% 5%;
 }
 
 /*

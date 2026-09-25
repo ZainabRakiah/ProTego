@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Camera, RefreshCw, Check, Upload, VideoOff, Play, Square, Timer } from "lucide-react";
+import { Camera, RefreshCw, Check, Upload, VideoOff, Play, Square, Timer, Zap, ZapOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -12,9 +12,9 @@ import {
 } from "@/components/ui/dialog";
 
 /**
- * Camera sheet with manual capture & 5-second interval auto-capture support.
+ * Camera sheet with manual capture, 5-second interval auto-capture & auto-torch/flashlight support.
  */
-export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode = false }) {
+export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode = false, autoTorch = false }) {
   const videoRef = React.useRef(null);
   const canvasRef = React.useRef(null);
   const streamRef = React.useRef(null);
@@ -28,14 +28,26 @@ export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode =
   const [countdown, setCountdown] = React.useState(5);
   const [autoCount, setAutoCount] = React.useState(0);
 
+  // Torch / Flashlight state
+  const [torchSupported, setTorchSupported] = React.useState(false);
+  const [isTorchOn, setIsTorchOn] = React.useState(false);
+
   const onCaptureRef = React.useRef(onCapture);
   React.useEffect(() => {
     onCaptureRef.current = onCapture;
   }, [onCapture]);
 
   const stop = React.useCallback(() => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    if (streamRef.current) {
+      const track = streamRef.current.getVideoTracks()[0];
+      if (track && typeof track.applyConstraints === "function") {
+        track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+      }
+      streamRef.current.getTracks().forEach((t) => t.stop());
+    }
     streamRef.current = null;
+    setIsTorchOn(false);
+    setTorchSupported(false);
   }, []);
 
   React.useEffect(() => {
@@ -43,6 +55,21 @@ export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode =
       setIsAutoActive(true);
     }
   }, [open, initialAutoMode]);
+
+  const toggleTorch = async (desiredState) => {
+    if (!streamRef.current) return;
+    const track = streamRef.current.getVideoTracks()[0];
+    if (!track) return;
+    const targetState = desiredState !== undefined ? desiredState : !isTorchOn;
+    try {
+      if (typeof track.applyConstraints === "function") {
+        await track.applyConstraints({ advanced: [{ torch: targetState }] });
+        setIsTorchOn(targetState);
+      }
+    } catch (err) {
+      console.warn("Torch toggle failed:", err);
+    }
+  };
 
   React.useEffect(() => {
     if (!open) {
@@ -71,6 +98,25 @@ export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode =
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => {});
         }
+
+        // Check torch capability & auto-enable torch when autoTorch or initialAutoMode is requested
+        const track = stream.getVideoTracks()[0];
+        if (track) {
+          const capabilities = typeof track.getCapabilities === "function" ? track.getCapabilities() : {};
+          const supportsTorch = Boolean(capabilities.torch);
+          setTorchSupported(supportsTorch);
+
+          if (autoTorch || initialAutoMode || supportsTorch) {
+            try {
+              if (typeof track.applyConstraints === "function") {
+                await track.applyConstraints({ advanced: [{ torch: true }] });
+                setIsTorchOn(true);
+              }
+            } catch (torchErr) {
+              console.warn("Auto torch activation notice:", torchErr);
+            }
+          }
+        }
       } catch {
         if (!cancelled) {
           setError(
@@ -84,7 +130,7 @@ export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode =
       cancelled = true;
       stop();
     };
-  }, [open, stop]);
+  }, [open, stop, autoTorch, initialAutoMode]);
 
   // Helper to extract JPEG data URL from video stream
   const getCanvasShot = React.useCallback(() => {
@@ -145,8 +191,15 @@ export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode =
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Capture evidence</span>
+          <DialogTitle className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="flex items-center gap-2">
+              Capture evidence
+              {isTorchOn && (
+                <Badge variant="outline" className="bg-amber-500/10 border-amber-500/40 text-amber-400 gap-1 text-[11px]">
+                  <Zap className="size-3 fill-amber-400" /> Torch Active
+                </Badge>
+              )}
+            </span>
             {isAutoActive && (
               <Badge variant="outline" className="bg-red-500/10 border-red-500/40 text-red-400 gap-1.5 animate-pulse">
                 <Timer className="size-3.5" />
@@ -155,7 +208,7 @@ export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode =
             )}
           </DialogTitle>
           <DialogDescription>
-            Photos are stamped with exact time and coordinates when saved to your vault.
+            Photos are stamped with exact time and coordinates when saved to your vault. Flashlight activates automatically during night SOS.
           </DialogDescription>
         </DialogHeader>
 
@@ -175,12 +228,26 @@ export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode =
                 muted
                 className="aspect-video w-full bg-black object-cover"
               />
-              {isAutoActive && (
-                <div className="absolute top-3 right-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 backdrop-blur-md text-xs font-semibold text-white border border-white/20">
-                  <div className="size-2 rounded-full bg-red-500 animate-ping" />
-                  Auto-capturing in {countdown}s
-                </div>
-              )}
+              <div className="absolute top-3 right-3 flex items-center gap-2">
+                {isAutoActive && (
+                  <div className="flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 backdrop-blur-md text-xs font-semibold text-white border border-white/20">
+                    <div className="size-2 rounded-full bg-red-500 animate-ping" />
+                    Auto-capturing in {countdown}s
+                  </div>
+                )}
+                {torchSupported && (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant={isTorchOn ? "warning" : "secondary"}
+                    onClick={() => toggleTorch()}
+                    title="Toggle Flashlight / Torch"
+                    className="size-8 rounded-full bg-black/70 backdrop-blur-md border border-white/20 text-amber-400 hover:bg-black/90"
+                  >
+                    {isTorchOn ? <Zap className="size-4 fill-amber-400" /> : <ZapOff className="size-4" />}
+                  </Button>
+                )}
+              </div>
             </>
           )}
         </div>
@@ -203,23 +270,35 @@ export function CameraCapture({ open, onOpenChange, onCapture, initialAutoMode =
 
           <div className="flex items-center gap-2">
             {!error && !shot && (
-              <Button
-                variant={isAutoActive ? "destructive" : "secondary"}
-                onClick={() => setIsAutoActive(!isAutoActive)}
-                className="gap-1.5"
-              >
-                {isAutoActive ? (
-                  <>
-                    <Square className="size-4" />
-                    Stop 5s Auto
-                  </>
-                ) : (
-                  <>
-                    <Play className="size-4" />
-                    Start 5s Auto
-                  </>
+              <>
+                {torchSupported && (
+                  <Button
+                    variant={isTorchOn ? "outline" : "secondary"}
+                    onClick={() => toggleTorch()}
+                    className="gap-1.5 border-amber-500/40 text-amber-400"
+                  >
+                    {isTorchOn ? <ZapOff className="size-4" /> : <Zap className="size-4 fill-amber-400" />}
+                    {isTorchOn ? "Torch Off" : "Torch On"}
+                  </Button>
                 )}
-              </Button>
+                <Button
+                  variant={isAutoActive ? "destructive" : "secondary"}
+                  onClick={() => setIsAutoActive(!isAutoActive)}
+                  className="gap-1.5"
+                >
+                  {isAutoActive ? (
+                    <>
+                      <Square className="size-4" />
+                      Stop 5s Auto
+                    </>
+                  ) : (
+                    <>
+                      <Play className="size-4" />
+                      Start 5s Auto
+                    </>
+                  )}
+                </Button>
+              </>
             )}
 
             {shot ? (

@@ -1,5 +1,6 @@
 import * as React from "react";
-import { Loader2, Save, LogOut, Moon, Sun, Sparkles, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Loader2, Save, LogOut, Moon, Sun, Sparkles, ExternalLink, Compass } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -173,10 +174,10 @@ export default function Profile() {
         </CardHeader>
         <CardContent className="space-y-2">
           <Button asChild variant="outline" className="w-full justify-between">
-            <a href="/friendsnavigator/" target="_blank" rel="noreferrer">
+            <Link to="/friendsnavigator">
               FriendsNavigator — live location sharing
-              <ExternalLink className="size-3.5" />
-            </a>
+              <Compass className="size-3.5" />
+            </Link>
           </Button>
         </CardContent>
       </Card>

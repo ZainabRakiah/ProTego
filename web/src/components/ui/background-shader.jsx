@@ -40,10 +40,10 @@ export const LAVENDER = {
  * the single light note that keeps it from going flat.
  */
 export const PROTEGO_MESH = [
-  LAVENDER.deep,
-  LAVENDER.amethyst,
-  LAVENDER.wisteria,
-  LAVENDER.periwinkle,
+  "#243C4C",
+  "#5289AD",
+  "#8A9DB1",
+  "#698696",
 ];
 
 export function MeshBackground({

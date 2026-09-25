@@ -14,6 +14,7 @@ import Contacts from "@/pages/Contacts";
 import Evidence from "@/pages/Evidence";
 import Profile from "@/pages/Profile";
 import Admin from "@/pages/Admin";
+import FriendsNavigator from "@/pages/FriendsNavigator";
 
 function RequireAuth({ children }) {
   const { user } = useAuth();
@@ -77,6 +78,8 @@ function Routing() {
         <Route path="accident" element={<AccidentRescue />} />
         <Route path="contacts" element={<Contacts />} />
         <Route path="evidence" element={<Evidence />} />
+        <Route path="friendsnavigator" element={<FriendsNavigator />} />
+        <Route path="friends-navigator" element={<FriendsNavigator />} />
         <Route path="report" element={<Report />} />
         <Route path="profile" element={<Profile />} />
         <Route

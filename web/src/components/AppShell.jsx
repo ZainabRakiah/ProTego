@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, Separator } from "@/components/ui/misc";
 import { MeshBackground, StaticMeshBackground } from "@/components/ui/background-shader";
 import { MagneticCursor } from "@/components/ui/magnetic-cursor";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
 import { LogoutDialog } from "@/components/LogoutDialog";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -81,7 +82,7 @@ function NavItems({ onNavigate }) {
     { to: "/accident", label: "Accident rescue", icon: Ambulance },
     { to: "/contacts", label: "Trusted circle", icon: Users },
     { to: "/evidence", label: "Evidence vault", icon: Camera },
-    { to: "/friendsnavigator/", label: "Friends navigator", icon: Compass, external: true },
+    { to: "/friendsnavigator", label: "Friends navigator", icon: Compass },
     { to: "/report", label: "Report", icon: FileWarning },
     ...(isAdmin ? [{ to: "/admin", label: "Governance & ML", icon: ShieldCheck }] : []),
     { to: "/profile", label: "Profile", icon: UserIcon },
@@ -200,7 +201,10 @@ export function AppShell() {
         <Separator className="my-5" />
         <NavItems />
         <div className="mt-auto space-y-3">
-          <BackendStatus />
+          <div className="flex items-center justify-between">
+            <BackendStatus />
+            <ThemeToggle />
+          </div>
           <Separator />
           <div className="flex items-center gap-3 rounded-lg px-2 py-1.5">
             <Avatar name={user?.name} />
@@ -226,6 +230,7 @@ export function AppShell() {
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border/70 bg-card px-4 pt-[env(safe-area-inset-top)] lg:hidden">
         <Brand />
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <BackendStatus compact />
           <Button
             variant="ghost"
