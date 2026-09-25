@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Camera, Trash2, ShieldAlert, Loader2, Image as ImageIcon, Download, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
