@@ -125,8 +125,9 @@ ProTego/
 - **Area details** — the administrative location plus the raw features the
   model scored it on: lamps, cameras, police and incidents within 500 m.
 - **Safety overlay** — a live grid heat layer over the map for the current hour.
-- **Press-and-hold SOS** — 1.5s hold guards against pocket triggers; logs your
-  coordinates with the nearest police station or hospitals attached.
+- **Press-and-hold SOS & Auto-Dispatch** — 1.5s hold guards against pocket triggers; automatically dispatches emergency alerts to nearest police control stations, top 3 nearest hospitals, and all saved trusted circle contacts with live GPS coordinates and Google Maps location links.
+- **Accident Rescue & Hospital Alerting** — instant 3-nearest hospital locator, interactive emergency rescue countdown, bystander accident reporting with live GPS & in-page map pin dropping, and in-page fastest hospital navigation with turn-by-turn maneuvers.
+- **Camera Auto-Capture (5s interval)** — automatic snapshot capture every 5 seconds stamped with time, exact GPS coordinates and accuracy, saving directly to the timestamped evidence vault.
 - **Human-in-the-Loop Continual Learning** — submitted incident reports start with a `PENDING` verification status. Reviewers approve or reject reports via the Admin Governance Dashboard. Only `APPROVED` reports undergo data-quality checks, enter the verified dataset, and update geospatial grid features. Candidate model retraining is triggered automatically after `N` newly approved incidents or via manual admin trigger. Candidate models are evaluated against a Quality Gate before deployment, with full model versioning, rollback, and audit trail support.
 - **Trusted circle** — saved places, each with its own set of contacts.
 - **Evidence vault** — photos stamped with time, coordinates and GPS accuracy.

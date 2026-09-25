@@ -96,6 +96,8 @@ export const api = {
   hospitalsNearby: (lat, lng) => request(`/api/hospitals-nearby?lat=${lat}&lng=${lng}`),
 
   // --- emergency ---
+  sosDispatch: (user_id, lat, lng, kind = "safety") =>
+    request("/api/emergency/sos-dispatch", { method: "POST", body: { user_id, lat, lng, kind } }),
   sosSafety: (user_id, lat, lng) =>
     request("/api/emergency/sos-safety", { method: "POST", body: { user_id, lat, lng } }),
   sosAccident: (user_id, lat, lng) =>

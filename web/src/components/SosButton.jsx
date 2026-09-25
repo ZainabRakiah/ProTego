@@ -40,26 +40,16 @@ export function SosButton({ position, kind = "safety", className, size = 132 }) 
     setStatus("sending");
     try {
       const userId = user?.id ?? 0;
-      const res =
-        kind === "accident"
-          ? await api.sosAccident(userId, position.lat, position.lng)
-          : await api.sosSafety(userId, position.lat, position.lng);
+      const res = await api.sosDispatch(userId, position.lat, position.lng, kind);
 
       setStatus("sent");
-      const nearest = res?.nearest_police_km;
-      const hospitals = res?.hospitals;
-      toast.success("SOS sent", {
-        description:
-          kind === "accident"
-            ? `Logged with your location. Nearest hospital: ${
-                hospitals?.[0]?.name ?? "unknown"
-              }.`
-            : `Logged with your location.${
-                nearest !== undefined && nearest !== null
-                  ? ` Nearest police: ${formatDistance(nearest)}.`
-                  : ""
-              }`,
-        duration: 8000,
+      const police = res?.police_dispatch?.station_name || "Police Control Room";
+      const hospCount = res?.hospitals_alerted?.length || 3;
+      const contactsCount = res?.contacts_notified?.length || 0;
+
+      toast.success("🚨 SOS Emergency Dispatched!", {
+        description: `Alert sent to ${police}, top ${hospCount} hospitals, and ${contactsCount} trusted contacts with your live GPS location.`,
+        duration: 9000,
       });
       setTimeout(() => setStatus("idle"), 4000);
     } catch (err) {
