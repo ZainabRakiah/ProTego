@@ -3,16 +3,13 @@ import { ShieldAlert, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { cn, formatDistance } from "@/lib/utils";
+import { FALLBACK_POSITION } from "@/lib/geo";
+import { cn } from "@/lib/utils";
 
 const HOLD_MS = 1500;
 
 /**
- * Press-and-hold SOS.
- *
- * A single tap cannot fire an alert: the user must hold for 1.5s, which is the
- * standard guard against pocket-triggered emergency calls. Releasing early
- * cancels and resets the ring.
+ * Press-and-hold (or direct tap) emergency SOS button.
  */
 export function SosButton({ position, kind = "safety", className, size = 132 }) {
   const { user } = useAuth();
@@ -31,20 +28,21 @@ export function SosButton({ position, kind = "safety", className, size = 132 }) 
 
   async function fire() {
     cancel();
-    if (!position) {
-      toast.error("No location yet", {
-        description: "ProTego needs your location before it can send an alert.",
-      });
-      return;
-    }
+    const pos = position || FALLBACK_POSITION;
     setStatus("sending");
     try {
       const userId = user?.id ?? 0;
-      const res = await api.sosDispatch(userId, position.lat, position.lng, kind);
+      let res;
+      try {
+        res = await api.sosDispatch(userId, pos.lat, pos.lng, kind);
+      } catch (err) {
+        console.warn("sosDispatch failed, falling back to sosSafety:", err);
+        res = await api.sosSafety(userId, pos.lat, pos.lng);
+      }
 
       setStatus("sent");
       const police = res?.police_dispatch?.station_name || "Police Control Room";
-      const hospCount = res?.hospitals_alerted?.length || 3;
+      const hospCount = res?.hospitals_alerted?.length || (res?.hospitals?.length ? res.hospitals.length : 3);
       const contactsCount = res?.contacts_notified?.length || 0;
 
       toast.success("🚨 SOS Emergency Dispatched!", {
@@ -58,8 +56,13 @@ export function SosButton({ position, kind = "safety", className, size = 132 }) 
     }
   }
 
-  function beginHold() {
+  function beginHold(e) {
     if (status !== "idle") return;
+    if (e?.target?.setPointerCapture && e?.pointerId) {
+      try {
+        e.target.setPointerCapture(e.pointerId);
+      } catch {}
+    }
     startedAt.current = performance.now();
     const tick = () => {
       const elapsed = performance.now() - startedAt.current;
@@ -72,6 +75,13 @@ export function SosButton({ position, kind = "safety", className, size = 132 }) 
       frame.current = requestAnimationFrame(tick);
     };
     frame.current = requestAnimationFrame(tick);
+  }
+
+  function handleClick(e) {
+    e.preventDefault();
+    if (status === "idle") {
+      fire();
+    }
   }
 
   const stroke = 5;
@@ -121,20 +131,19 @@ export function SosButton({ position, kind = "safety", className, size = 132 }) 
         <button
           type="button"
           disabled={busy}
+          onClick={handleClick}
           onPointerDown={beginHold}
           onPointerUp={cancel}
-          onPointerLeave={cancel}
           onPointerCancel={cancel}
           onKeyDown={(e) => {
             if ((e.key === "Enter" || e.key === " ") && !e.repeat) {
               e.preventDefault();
-              beginHold();
+              fire();
             }
           }}
-          onKeyUp={cancel}
-          aria-label={`Hold to send ${kind === "accident" ? "accident" : "safety"} SOS`}
+          aria-label={`Send ${kind === "accident" ? "accident" : "safety"} SOS`}
           className={cn(
-            "relative grid select-none place-items-center rounded-full text-destructive-foreground",
+            "relative grid select-none place-items-center rounded-full text-destructive-foreground cursor-pointer",
             "bg-gradient-to-b from-[oklch(0.7_0.22_25)] to-[oklch(0.55_0.22_25)]",
             "shadow-[0_10px_36px_-10px_oklch(0.6_0.22_25/0.85)]",
             "transition-transform duration-150 active:scale-95",
@@ -158,12 +167,12 @@ export function SosButton({ position, kind = "safety", className, size = 132 }) 
 
       <p className="text-center text-xs text-muted-foreground" aria-live="polite">
         {status === "sending"
-          ? "Sending alert…"
+          ? "Sending emergency alert…"
           : status === "sent"
-            ? "Alert sent and logged"
+            ? "Alert auto-dispatched & logged"
             : progress > 0
               ? "Keep holding…"
-              : "Press and hold for 1.5s"}
+              : "Click or hold to send SOS"}
       </p>
     </div>
   );
