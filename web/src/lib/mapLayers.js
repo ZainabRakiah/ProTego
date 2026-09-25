@@ -13,8 +13,8 @@ export const MAP_LAYERS = [
     label: "Street",
     description: "Standard road map",
     icon: Map,
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom: 19,
     invertInDark: false,
   },
@@ -23,10 +23,8 @@ export const MAP_LAYERS = [
     label: "Geographic",
     description: "Terrain, contours and elevation",
     icon: Mountain,
-    url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-    attribution:
-      'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, ' +
-      '<a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)',
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+    attribution: "Imagery &copy; Esri, HERE, Garmin, Intermap",
     maxZoom: 17,
     invertInDark: false,
   },
@@ -64,7 +62,7 @@ export function getActiveTileUrl(layer, isDark = false) {
   if (layer.id === "street") {
     return isDark
       ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-      : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+      : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
   }
   return layer.url;
 }
